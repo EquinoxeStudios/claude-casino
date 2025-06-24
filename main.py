@@ -68,7 +68,7 @@ class CasinoWebsiteGenerator:
             
             # Step 5: Fetch and process games
             print_colored("🎮 Fetching casino games...", Fore.YELLOW)
-            games = await self.game_manager.fetch_games()
+            games = await self.game_manager.fetch_games(domain_name)
             
             # Step 6: Generate all content
             print_colored("📝 Generating website content...", Fore.YELLOW)

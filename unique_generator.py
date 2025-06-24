@@ -266,17 +266,22 @@ class UniqueGenerator:
         return '\n'.join(lines)
     
     def add_invisible_characters(self, content):
-        """Add invisible Unicode characters to content"""
-        invisible_chars = ['\\u200B', '\\u200C', '\\u200D', '\\u2060']
+        """Add invisible Unicode characters to content (optional feature)"""
+        # Disabled by default to avoid text rendering issues
+        # Uncomment the code below if you want to enable invisible characters
         
-        # Add invisible characters at random positions in text content
-        lines = content.split('\n')
-        for i in range(len(lines)):
-            if random.random() < 0.1:  # 10% chance per line
-                char = random.choice(invisible_chars)
-                lines[i] = lines[i] + char
+        # invisible_chars = ['\u200B', '\u200C', '\u200D', '\u2060']  # Zero-width chars
+        # lines = content.split('\n')
+        # for i in range(len(lines)):
+        #     if random.random() < 0.02:  # Very low chance
+        #         char = random.choice(invisible_chars)
+        #         # Only add to specific safe locations
+        #         if '</title>' in lines[i] or '</h1>' in lines[i]:
+        #             lines[i] = lines[i].replace('>', f'{char}>')
+        # return '\n'.join(lines)
         
-        return '\n'.join(lines)
+        # Return content unchanged (invisible chars disabled)
+        return content
     
     def vary_dom_structure(self, content):
         """Advanced DOM structure variation for anti-fingerprinting"""

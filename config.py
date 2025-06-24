@@ -6,7 +6,9 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 SLOTSLAUNCH_API_TOKEN = os.getenv('SLOTSLAUNCH_API_TOKEN')
 
-SLOTSLAUNCH_BASE_URL = "https://slotslaunch.com"
+# SlotsLaunch API Configuration
+# Use slotslaunch.test for testing, slotslaunch.com for production
+SLOTSLAUNCH_BASE_URL = os.getenv('SLOTSLAUNCH_BASE_URL', "https://slotslaunch.test")
 SLOTSLAUNCH_GAMES_ENDPOINT = "/api/games"
 
 THEME_COLORS = {

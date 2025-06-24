@@ -13,15 +13,25 @@ class GameManager:
         self.base_url = SLOTSLAUNCH_BASE_URL
         self.games_endpoint = SLOTSLAUNCH_GAMES_ENDPOINT
         
-    async def fetch_games(self):
+    async def fetch_games(self, domain_name=None):
         """Fetch games from SlotsLaunch API"""
         try:
+            # Headers according to SlotsLaunch API documentation
             headers = {
-                'Authorization': f'Bearer {self.api_token}',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
             
-            url = f"{self.base_url}{self.games_endpoint}"
+            # Add Origin header with the domain being built (required by API)
+            if domain_name:
+                headers['Origin'] = domain_name
+            
+            # Token goes in the URL as per API documentation
+            url = f"{self.base_url}{self.games_endpoint}?token={self.api_token}"
+            
+            # Debug information
+            print_colored(f"🔗 API URL: {self.base_url}{self.games_endpoint}", Fore.CYAN)
+            print_colored(f"📤 Headers: {headers}", Fore.CYAN)
             
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=headers) as response:
@@ -38,8 +48,17 @@ class GameManager:
                             processed_games.append(processed_game)
                         
                         return processed_games
+                    elif response.status == 401:
+                        print_colored(f"❌ API authentication failed: Invalid token", Fore.RED)
+                        print_colored("Please check your SLOTSLAUNCH_API_TOKEN in .env file", Fore.YELLOW)
+                        return self.get_fallback_games()
+                    elif response.status == 403:
+                        print_colored(f"❌ API access forbidden: Check Origin header", Fore.RED)
+                        print_colored(f"Origin header sent: {headers.get('Origin', 'None')}", Fore.YELLOW)
+                        return self.get_fallback_games()
                     else:
-                        print_colored(f"❌ API request failed: {response.status}", Fore.RED)
+                        error_text = await response.text()
+                        print_colored(f"❌ API request failed: {response.status} - {error_text}", Fore.RED)
                         return self.get_fallback_games()
                         
         except Exception as e:
