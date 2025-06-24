@@ -292,6 +292,44 @@ class UniqueGenerator:
         
         return content
     
+    def add_random_elements(self, output_dir):
+        """Add random elements like meta tags, hidden divs, and other obfuscation"""
+        html_files = list(Path(output_dir).rglob("*.html")) + list(Path(output_dir).rglob("*.php"))
+        
+        for file_path in html_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Add random meta tags
+                random_meta = []
+                meta_names = ['generator', 'author', 'copyright', 'rating', 'distribution']
+                for name in random.sample(meta_names, random.randint(2, 4)):
+                    value = generate_random_string(random.randint(8, 16))
+                    random_meta.append(f'<meta name="{name}" content="{value}">')
+                
+                # Insert meta tags before closing head tag
+                if '</head>' in content:
+                    meta_block = '\n    ' + '\n    '.join(random_meta) + '\n'
+                    content = content.replace('</head>', meta_block + '</head>')
+                
+                # Add random hidden divs
+                hidden_divs = []
+                for _ in range(random.randint(1, 3)):
+                    div_id = generate_random_string(8)
+                    hidden_divs.append(f'<div id="{div_id}" style="display:none;"></div>')
+                
+                # Insert hidden divs after body tag
+                if '<body>' in content:
+                    hidden_block = '\n' + '\n'.join(hidden_divs) + '\n'
+                    content = content.replace('<body>', '<body>' + hidden_block)
+                
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                    
+            except Exception as e:
+                print_colored(f"❌ Error adding random elements to {file_path}: {e}", Fore.RED)
+    
     def generate_build_files(self, output_dir):
         """Generate unique build and meta files"""
         
