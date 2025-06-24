@@ -11,8 +11,13 @@ def create_directory(path):
     Path(path).mkdir(parents=True, exist_ok=True)
 
 def print_colored(text, color=Fore.WHITE):
-    """Print colored text"""
-    print(f"{color}{text}{Style.RESET_ALL}")
+    """Print colored text with Windows Unicode support"""
+    try:
+        print(f"{color}{text}{Style.RESET_ALL}")
+    except UnicodeEncodeError:
+        # Fallback for Windows console issues
+        safe_text = text.encode('ascii', errors='replace').decode('ascii')
+        print(f"{color}{safe_text}{Style.RESET_ALL}")
 
 def get_user_input(prompt):
     """Get user input with colored prompt"""

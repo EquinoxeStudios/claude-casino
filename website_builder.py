@@ -83,27 +83,27 @@ class WebsiteBuilder:
         """Generate CSS and JavaScript files"""
         # Generate base CSS
         base_css = self.generate_base_css(design_system)
-        with open(f"{output_dir}/css/base.css", 'w') as f:
+        with open(f"{output_dir}/css/base.css", 'w', encoding='utf-8') as f:
             f.write(base_css)
         
         # Generate homepage CSS
         homepage_css = self.generate_homepage_css(design_system)
-        with open(f"{output_dir}/css/homepage.css", 'w') as f:
+        with open(f"{output_dir}/css/homepage.css", 'w', encoding='utf-8') as f:
             f.write(homepage_css)
         
         # Generate games CSS
         games_css = self.generate_games_css(design_system)
-        with open(f"{output_dir}/css/games.css", 'w') as f:
+        with open(f"{output_dir}/css/games.css", 'w', encoding='utf-8') as f:
             f.write(games_css)
         
         # Generate game detail CSS
         game_css = self.generate_game_css(design_system)
-        with open(f"{output_dir}/css/game.css", 'w') as f:
+        with open(f"{output_dir}/css/game.css", 'w', encoding='utf-8') as f:
             f.write(game_css)
         
         # Generate legal CSS
         legal_css = self.generate_legal_css(design_system)
-        with open(f"{output_dir}/css/legal.css", 'w') as f:
+        with open(f"{output_dir}/css/legal.css", 'w', encoding='utf-8') as f:
             f.write(legal_css)
         
         # Generate JavaScript files
@@ -169,12 +169,12 @@ Allow: /
 
 Sitemap: /sitemap.xml"""
         
-        with open(f"{output_dir}/robots.txt", 'w') as f:
+        with open(f"{output_dir}/robots.txt", 'w', encoding='utf-8') as f:
             f.write(robots_content)
         
         # Generate sitemap.xml
         sitemap_content = self.generate_sitemap(content, games)
-        with open(f"{output_dir}/sitemap.xml", 'w') as f:
+        with open(f"{output_dir}/sitemap.xml", 'w', encoding='utf-8') as f:
             f.write(sitemap_content)
         
         # Generate manifest.json
@@ -1388,14 +1388,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });"""
         
         # Write JavaScript files
-        with open(f"{output_dir}/js/base.js", 'w') as f:
+        with open(f"{output_dir}/js/base.js", 'w', encoding='utf-8') as f:
             f.write(base_js)
         
-        with open(f"{output_dir}/js/homepage.js", 'w') as f:
+        with open(f"{output_dir}/js/homepage.js", 'w', encoding='utf-8') as f:
             f.write(homepage_js)
         
-        with open(f"{output_dir}/js/games.js", 'w') as f:
+        with open(f"{output_dir}/js/games.js", 'w', encoding='utf-8') as f:
             f.write(games_js)
         
-        with open(f"{output_dir}/js/game.js", 'w') as f:
+        with open(f"{output_dir}/js/game.js", 'w', encoding='utf-8') as f:
             f.write(game_js)

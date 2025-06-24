@@ -12,6 +12,12 @@ from colorama import init, Fore, Style
 # Initialize colorama
 init(autoreset=True)
 
+# Set UTF-8 encoding for Windows
+if sys.platform.startswith('win'):
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
+
 # Import main application
 from main import CasinoWebsiteGenerator, print_colored
 

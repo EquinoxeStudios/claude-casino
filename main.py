@@ -19,6 +19,12 @@ from utils import create_directory, get_user_input, print_colored
 
 init(autoreset=True)
 
+# Set UTF-8 encoding for Windows
+if sys.platform.startswith('win'):
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
+
 class CasinoWebsiteGenerator:
     def __init__(self):
         self.ai_generator = AIContentGenerator()
