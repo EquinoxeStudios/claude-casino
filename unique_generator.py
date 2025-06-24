@@ -92,17 +92,23 @@ class UniqueGenerator:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 
-                # Replace class names using simpler approach
+                # Replace class names with proper spacing
                 for original, unique in self.class_mapping.items():
-                    # Replace class="original" and class="other original more"
+                    # Replace whole class names with word boundaries
                     def replace_class_name(m):
-                        before = (m.group(1) or "").strip()
-                        after = (m.group(2) or "").strip()
-                        parts = [p for p in [before, unique, after] if p]
-                        result = f'class="{" ".join(parts)}"'
-                        return result
+                        full_class_attr = m.group(1)
+                        # Split into individual classes, replace the target class, rejoin
+                        classes = full_class_attr.split()
+                        updated_classes = []
+                        for cls in classes:
+                            if cls == original:
+                                updated_classes.append(unique)
+                            else:
+                                updated_classes.append(cls)
+                        return f'class="{" ".join(updated_classes)}"'
                     
-                    content = re.sub(rf'\bclass="([^"]*\s+)?{re.escape(original)}(\s+[^"]*)?""', 
+                    # Match the entire class attribute content
+                    content = re.sub(rf'\bclass="([^"]*\b{re.escape(original)}\b[^"]*)"', 
                                    replace_class_name, content)
                 
                 # Replace IDs
@@ -438,15 +444,15 @@ class UniqueGenerator:
             f'style="letter-spacing: {random.choice([0.1, 0.2, 0.3, -0.1])}px;"'
         ]
         
-        # Apply random inline styles to card elements
+        # Apply random inline styles to card elements (only if no existing style)
         if random.random() < 0.3:
-            content = re.sub(r'(<div class="[^"]*card[^"]*")', 
+            content = re.sub(r'(<div class="[^"]*card[^"]*"(?![^>]*style=))', 
                            lambda m: f'{m.group(1)} {random.choice(style_additions)}', 
                            content, count=random.randint(1, 3))
         
-        # Apply to button elements
+        # Apply to button elements (only if no existing style)
         if random.random() < 0.4:
-            content = re.sub(r'(<[^>]*class="[^"]*btn[^"]*")', 
+            content = re.sub(r'(<[^>]*class="[^"]*btn[^"]*"(?![^>]*style=))', 
                            lambda m: f'{m.group(1)} {random.choice(style_additions)}', 
                            content, count=random.randint(1, 2))
         
