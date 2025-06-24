@@ -1,7 +1,7 @@
 import asyncio
 import requests
 from pathlib import Path
-from jinja2 import Template
+from jinja2 import Template, Environment, DictLoader
 from utils import create_directory, save_json, get_file_extension, slugify, print_colored
 from colorama import Fore
 
@@ -13,14 +13,16 @@ class WebsiteBuilder:
     def load_templates(self):
         """Load HTML templates"""
         self.templates = {
-            'base': self.get_base_template(),
-            'homepage': self.get_homepage_template(),
-            'games': self.get_games_template(),
-            'game_detail': self.get_game_detail_template(),
-            'about': self.get_about_template(),
-            'legal': self.get_legal_template(),
-            'contact': self.get_contact_template()
+            'base.html': self.get_base_template(),
+            'homepage.html': self.get_homepage_template(),
+            'games.html': self.get_games_template(),
+            'game_detail.html': self.get_game_detail_template(),
+            'about.html': self.get_about_template(),
+            'legal.html': self.get_legal_template(),
+            'contact.html': self.get_contact_template()
         }
+        # Create environment after templates are loaded
+        self.env = Environment(loader=DictLoader(self.templates))
     
     async def build_website(self, output_dir, content, design_system, images, games, deployment_type="noip"):
         """Build complete website"""
@@ -201,7 +203,7 @@ Sitemap: /sitemap.xml"""
     
     def render_homepage(self, content, design_system, games):
         """Render homepage HTML"""
-        template = Template(self.templates['homepage'])
+        template = self.env.get_template('homepage.html')
         return template.render(
             content=content,
             design_system=design_system,
@@ -211,7 +213,7 @@ Sitemap: /sitemap.xml"""
     
     def render_games_page(self, content, design_system, games):
         """Render games listing page"""
-        template = Template(self.templates['games']) 
+        template = self.env.get_template('games.html')
         return template.render(
             content=content,
             design_system=design_system,
@@ -223,7 +225,7 @@ Sitemap: /sitemap.xml"""
         # Get similar games (same category, exclude current)
         similar_games = [g for g in all_games if g['category'] == game['category'] and g['id'] != game['id']][:4]
         
-        template = Template(self.templates['game_detail'])
+        template = self.env.get_template('game_detail.html')
         return template.render(
             content=content,
             design_system=design_system,
@@ -233,7 +235,7 @@ Sitemap: /sitemap.xml"""
     
     def render_about_page(self, content, design_system):
         """Render about page"""
-        template = Template(self.templates['about'])
+        template = self.env.get_template('about.html')
         return template.render(
             content=content,
             design_system=design_system
@@ -241,7 +243,7 @@ Sitemap: /sitemap.xml"""
     
     def render_legal_page(self, content, design_system, page_type):
         """Render legal pages"""
-        template = Template(self.templates['legal'])
+        template = self.env.get_template('legal.html')
         return template.render(
             content=content,
             design_system=design_system,
@@ -250,7 +252,7 @@ Sitemap: /sitemap.xml"""
     
     def render_contact_page(self, content, design_system):
         """Render contact page"""
-        template = Template(self.templates['contact'])
+        template = self.env.get_template('contact.html')
         return template.render(
             content=content,
             design_system=design_system
@@ -357,7 +359,7 @@ Sitemap: /sitemap.xml"""
     
     def get_homepage_template(self):
         """Homepage template"""
-        return """{% extends "base" %}
+        return """{% extends "base.html" %}
 
 {% block additional_css %}
 <link rel="stylesheet" href="css/homepage.css">
@@ -419,7 +421,7 @@ Sitemap: /sitemap.xml"""
     
     def get_games_template(self):
         """Games listing template"""
-        return """{% extends "base" %}
+        return """{% extends "base.html" %}
 
 {% block title %}Games - {{ content.site_name }}{% endblock %}
 
@@ -470,7 +472,7 @@ Sitemap: /sitemap.xml"""
     
     def get_game_detail_template(self):
         """Game detail template"""
-        return """{% extends "base" %}
+        return """{% extends "base.html" %}
 
 {% block title %}{{ game.name }} - {{ content.site_name }}{% endblock %}
 
@@ -550,7 +552,7 @@ Sitemap: /sitemap.xml"""
     
     def get_about_template(self):
         """About page template"""
-        return """{% extends "base" %}
+        return """{% extends "base.html" %}
 
 {% block title %}About - {{ content.site_name }}{% endblock %}
 
@@ -575,7 +577,7 @@ Sitemap: /sitemap.xml"""
     
     def get_legal_template(self):
         """Legal pages template"""
-        return """{% extends "base" %}
+        return """{% extends "base.html" %}
 
 {% block title %}{{ content.pages.legal[page_type].title }} - {{ content.site_name }}{% endblock %}
 
@@ -601,7 +603,7 @@ Sitemap: /sitemap.xml"""
     
     def get_contact_template(self):
         """Contact page template"""
-        return """{% extends "base" %}
+        return """{% extends "base.html" %}
 
 {% block title %}Contact - {{ content.site_name }}{% endblock %}
 
