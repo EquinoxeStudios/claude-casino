@@ -40,23 +40,32 @@ class UniqueGenerator:
     def generate_unique_mappings(self):
         """Generate unique mappings for classes, IDs, and functions"""
         
-        # Common CSS classes to randomize
+        # Common CSS classes to randomize - must match those used in templates and CSS
         common_classes = [
-            'container', 'header', 'footer', 'nav', 'menu', 'content', 'sidebar',
-            'main', 'section', 'article', 'card', 'button', 'btn', 'link',
-            'game-card', 'game-grid', 'hero', 'features', 'about', 'contact'
+            'sidebar', 'sidebar-header', 'sidebar-nav', 'sidebar-toggle', 'sidebar-overlay',
+            'mobile-sidebar-toggle', 'main-wrapper', 'hero', 'hero-content', 'hero-buttons',
+            'content-section', 'section-header', 'section-title', 'section-subtitle',
+            'cards-container', 'cards-slider', 'card', 'card-thumbnail', 'card-overlay',
+            'card-info', 'card-title', 'card-cta', 'slider-nav', 'slider-prev', 'slider-next',
+            'slider-dots', 'dot', 'about-section', 'about-content', 'footer', 'footer-content',
+            'footer-links', 'footer-link', 'footer-bottom', 'nav-item', 'logo', 'btn',
+            'btn-primary', 'btn-large', 'games-header', 'games-count', 'games-section',
+            'games-grid', 'game-card', 'game-thumbnail', 'game-overlay', 'game-info',
+            'game-title', 'game-cta', 'page-header', 'about-block', 'content-wrapper'
         ]
         
         # Common IDs to randomize
         common_ids = [
-            'header', 'footer', 'nav', 'menu', 'content', 'main', 'sidebar',
-            'hero', 'games', 'about', 'contact', 'search', 'filter'
+            'sidebar', 'mainWrapper', 'mobileSidebarToggle', 'sidebarOverlay',
+            'section0Slider', 'section1Slider', 'section0Dots', 'section1Dots',
+            'gameLoading'
         ]
         
         # Common JavaScript functions to randomize
         common_functions = [
-            'init', 'setup', 'handleClick', 'showGame', 'filterGames',
-            'toggleMenu', 'scrollToTop', 'loadGames', 'searchGames'
+            'toggleSidebar', 'toggleMobileSidebar', 'closeMobileSidebar', 'slideCards',
+            'handleImageError', 'handleImageLoad', 'trackGameClick', 'hideLoading',
+            'showError', 'toggleFullscreen', 'initializeSliderDots'
         ]
         
         # Generate unique class names
@@ -80,15 +89,20 @@ class UniqueGenerator:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 
-                # Replace class names
+                # Replace class names - simple word boundary approach
                 for original, unique in self.class_mapping.items():
-                    content = re.sub(rf'class="([^"]*\b)?{re.escape(original)}(\b[^"]*)?"', 
-                                   lambda m: f'class="{(m.group(1) or "").strip()}{unique}{(m.group(2) or "").strip()}"', content)
+                    # Replace whole words only in class attributes
+                    content = re.sub(rf'\bclass="([^"]*)\b{re.escape(original)}\b([^"]*)"', 
+                                   lambda m: f'class="{m.group(1)}{unique}{m.group(2)}"', content)
                 
                 # Replace IDs
                 for original, unique in self.id_mapping.items():
                     content = re.sub(rf'id="{re.escape(original)}"', f'id="{unique}"', content)
                     content = re.sub(rf'href="#{re.escape(original)}"', f'href="#{unique}"', content)
+                
+                # Replace JavaScript function names in HTML attributes (onclick, etc.)
+                for original, unique in self.function_mapping.items():
+                    content = re.sub(rf'\b{re.escape(original)}\s*\(', f'{unique}(', content)
                 
                 # Add random comments
                 content = self.add_random_html_comments(content)
@@ -116,11 +130,13 @@ class UniqueGenerator:
                 
                 # Replace class selectors
                 for original, unique in self.class_mapping.items():
-                    content = re.sub(rf'\.{re.escape(original)}(\b)', f'.{unique}\\1', content)
+                    # Match class selectors: .classname (with word boundary or special chars)
+                    content = re.sub(rf'\.{re.escape(original)}(?=[\s\{{:,>+~#\.]|$)', f'.{unique}', content)
                 
                 # Replace ID selectors
                 for original, unique in self.id_mapping.items():
-                    content = re.sub(rf'#{re.escape(original)}(\b)', f'#{unique}\\1', content)
+                    # Match ID selectors: #idname (with word boundary or special chars)
+                    content = re.sub(rf'#{re.escape(original)}(?=[\s\{{:,>+~#\.]|$)', f'#{unique}', content)
                 
                 # Add random CSS comments
                 content = self.add_random_css_comments(content)
@@ -143,11 +159,14 @@ class UniqueGenerator:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 
-                # Replace function names
+                # Replace function names in JavaScript
                 for original, unique in self.function_mapping.items():
-                    content = re.sub(rf'function\s+{re.escape(original)}(\b)', f'function {unique}\\1', content)
-                    content = re.sub(rf'{re.escape(original)}\s*=\s*function', f'{unique} = function', content)
-                    content = re.sub(rf'{re.escape(original)}\s*\(', f'{unique}(', content)
+                    # Function declarations: function functionName()
+                    content = re.sub(rf'\bfunction\s+{re.escape(original)}\b', f'function {unique}', content)
+                    # Function expressions: var functionName = function
+                    content = re.sub(rf'\b{re.escape(original)}\s*=\s*function', f'{unique} = function', content)
+                    # Function calls: functionName(
+                    content = re.sub(rf'\b{re.escape(original)}\s*\(', f'{unique}(', content)
                 
                 # Add random JavaScript comments
                 content = self.add_random_js_comments(content)
