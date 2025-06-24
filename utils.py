@@ -14,9 +14,40 @@ def print_colored(text, color=Fore.WHITE):
     """Print colored text with Windows Unicode support"""
     try:
         print(f"{color}{text}{Style.RESET_ALL}")
-    except UnicodeEncodeError:
-        # Fallback for Windows console issues
-        safe_text = text.encode('ascii', errors='replace').decode('ascii')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        # Fallback for Windows console issues - replace problematic characters
+        safe_text = str(text).encode('ascii', errors='replace').decode('ascii')
+        # Replace common emoji/unicode with ASCII equivalents
+        replacements = {
+            '✅': '[OK]',
+            '❌': '[ERROR]', 
+            '⚠️': '[WARNING]',
+            '🎰': '[CASINO]',
+            '🚀': '[LAUNCH]',
+            '🎨': '[ART]',
+            '🖼️': '[IMAGE]',
+            '🎮': '[GAME]',
+            '📝': '[NOTE]',
+            '🏗️': '[BUILD]',
+            '🔒': '[SECURE]',
+            '🔍': '[SEARCH]',
+            '📁': '[FOLDER]',
+            '🌐': '[DOMAIN]',
+            '📋': '[LIST]',
+            '⏱️': '[TIME]',
+            '💡': '[TIP]',
+            '🎯': '[TARGET]',
+            '🎉': '[SUCCESS]',
+            '💻': '[TECH]',
+            '📦': '[PACKAGE]',
+            '⚡': '[FAST]',
+            '🔧': '[SETUP]',
+            '🐛': '[BUG]',
+            '🔄': '[REFRESH]',
+            '👋': '[WAVE]'
+        }
+        for emoji, ascii_rep in replacements.items():
+            safe_text = safe_text.replace(emoji, ascii_rep)
         print(f"{color}{safe_text}{Style.RESET_ALL}")
 
 def get_user_input(prompt):

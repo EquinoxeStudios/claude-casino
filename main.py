@@ -21,9 +21,11 @@ init(autoreset=True)
 
 # Set UTF-8 encoding for Windows
 if sys.platform.startswith('win'):
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
+    import locale
+    try:
+        locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+    except:
+        pass
 
 class CasinoWebsiteGenerator:
     def __init__(self):
