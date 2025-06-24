@@ -16,6 +16,12 @@ class GameManager:
     async def fetch_games(self, domain_name=None):
         """Fetch games from SlotsLaunch API"""
         try:
+            # Check if API token is configured
+            if not self.api_token or self.api_token == 'your_slotslaunch_token_here':
+                print_colored("⚠️ SlotsLaunch API token not configured", Fore.YELLOW)
+                print_colored("Using fallback demo games", Fore.YELLOW)
+                return self.get_fallback_games()
+            
             # Headers according to SlotsLaunch API documentation
             headers = {
                 'Content-Type': 'application/json',
@@ -25,21 +31,41 @@ class GameManager:
             # Add Origin header with the domain being built (required by API)
             if domain_name:
                 headers['Origin'] = domain_name
+            else:
+                print_colored("⚠️ No domain name provided for Origin header", Fore.YELLOW)
             
             # Token goes in the URL as per API documentation
             url = f"{self.base_url}{self.games_endpoint}?token={self.api_token}"
             
-            # Debug information
+            # Debug information (mask token for security)
+            masked_token = f"{self.api_token[:6]}..." if len(self.api_token) > 6 else "***"
             print_colored(f"🔗 API URL: {self.base_url}{self.games_endpoint}", Fore.CYAN)
+            print_colored(f"🔑 Token: {masked_token}", Fore.CYAN)
             print_colored(f"📤 Headers: {headers}", Fore.CYAN)
             
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=headers) as response:
                     if response.status == 200:
                         data = await response.json()
+                        
+                        # Debug: Show full API response
+                        print_colored(f"📋 API Response: {data}", Fore.CYAN)
+                        
                         games = data.get('games', [])
                         
                         print_colored(f"✅ Fetched {len(games)} games from SlotsLaunch API", Fore.GREEN)
+                        
+                        # If no games, check for error messages in response
+                        if len(games) == 0:
+                            if 'error' in data:
+                                print_colored(f"⚠️ API Error: {data['error']}", Fore.YELLOW)
+                            if 'message' in data:
+                                print_colored(f"⚠️ API Message: {data['message']}", Fore.YELLOW)
+                            print_colored("🔧 Possible issues:", Fore.YELLOW)
+                            print_colored("   - Invalid API token", Fore.YELLOW)
+                            print_colored("   - Domain not registered for this token", Fore.YELLOW)
+                            print_colored("   - Token not configured properly", Fore.YELLOW)
+                            return self.get_fallback_games()
                         
                         # Process games data
                         processed_games = []
