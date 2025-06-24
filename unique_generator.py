@@ -32,6 +32,9 @@ class UniqueGenerator:
         # Add random comments and metadata
         self.add_random_elements(output_dir)
         
+        # Vary CSS delivery method
+        self.vary_css_delivery(output_dir)
+        
         # Generate unique build files
         self.generate_build_files(output_dir)
         
@@ -89,11 +92,18 @@ class UniqueGenerator:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 
-                # Replace class names - simple word boundary approach
+                # Replace class names using simpler approach
                 for original, unique in self.class_mapping.items():
-                    # Replace whole words only in class attributes
-                    content = re.sub(rf'\bclass="([^"]*)\b{re.escape(original)}\b([^"]*)"', 
-                                   lambda m: f'class="{m.group(1)}{unique}{m.group(2)}"', content)
+                    # Replace class="original" and class="other original more"
+                    def replace_class_name(m):
+                        before = (m.group(1) or "").strip()
+                        after = (m.group(2) or "").strip()
+                        parts = [p for p in [before, unique, after] if p]
+                        result = f'class="{" ".join(parts)}"'
+                        return result
+                    
+                    content = re.sub(rf'\bclass="([^"]*\s+)?{re.escape(original)}(\s+[^"]*)?""', 
+                                   replace_class_name, content)
                 
                 # Replace IDs
                 for original, unique in self.id_mapping.items():
@@ -112,6 +122,9 @@ class UniqueGenerator:
                 
                 # Vary DOM structure slightly
                 content = self.vary_dom_structure(content)
+                
+                # Add dynamic inline style variations
+                content = self.add_dynamic_inline_styles(content)
                 
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(content)
@@ -143,6 +156,9 @@ class UniqueGenerator:
                 
                 # Randomize CSS property order
                 content = self.randomize_css_properties(content)
+                
+                # Add font variations
+                content = self.add_font_variations(content)
                 
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(content)
@@ -257,15 +273,50 @@ class UniqueGenerator:
         return '\n'.join(lines)
     
     def vary_dom_structure(self, content):
-        """Slightly vary DOM structure"""
-        # Add random empty divs
-        if random.random() < 0.3:
-            content = content.replace('<body>', '<body>\n<div class="layout-helper"></div>')
+        """Advanced DOM structure variation for anti-fingerprinting"""
         
-        # Add random data attributes
+        # 1. Add random empty containers with varying depth
+        if random.random() < 0.3:
+            depth = random.randint(1, 3)
+            nested_divs = ''.join(['<div class="layout-helper">'] * depth)
+            nested_closing = ''.join(['</div>'] * depth)
+            content = content.replace('<body>', f'<body>\n{nested_divs}{nested_closing}')
+        
+        # 2. Randomly use semantic vs generic tags (safer approach)
+        # Only replace if we can ensure matching closing tags
+        semantic_patterns = [
+            ('content-section', 'article'),
+            ('sidebar', 'aside'), 
+            ('nav', 'nav'),
+            ('header', 'header'),
+            ('footer', 'footer')
+        ]
+        
+        for class_pattern, tag_name in semantic_patterns:
+            if random.random() < 0.3:  # 30% chance to use semantic tags
+                # Only replace self-contained divs to avoid mismatched tags
+                pattern = rf'<div class="([^"]*{class_pattern}[^"]*)"([^>]*)>(.*?)</div>'
+                replacement = rf'<{tag_name} class="\1"\2>\3</{tag_name}>'
+                content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+        
+        # 3. Add random data attributes with varying formats
+        data_attrs = [
+            f'data-id="{generate_random_string(8)}"',
+            f'data-component="{generate_random_string(6)}"',
+            f'data-render="{random.randint(1000, 9999)}"',
+            f'data-version="{random.randint(1, 99)}.{random.randint(0, 9)}"'
+        ]
+        
         content = re.sub(r'<div class="([^"]*)"', 
-                        lambda m: f'<div class="{m.group(1)}" data-v="{generate_random_string(6)}"', 
+                        lambda m: f'<div class="{m.group(1)}" {random.choice(data_attrs)}', 
                         content)
+        
+        # 4. Add random wrapper elements
+        if random.random() < 0.2:
+            wrapper_tag = random.choice(['section', 'div', 'article'])
+            content = content.replace('<main class="main-wrapper"', 
+                                    f'<{wrapper_tag} class="container-wrap"><main class="main-wrapper"')
+            content = content.replace('</main>', f'</main></{wrapper_tag}>')
         
         return content
     
@@ -282,11 +333,56 @@ class UniqueGenerator:
             prop_lines = [line.strip() for line in properties.split(';') if line.strip()]
             random.shuffle(prop_lines)
             
-            return f"{selector} {{\n    {';\n    '.join(prop_lines)};\n}}"
+            newline = '\n'
+            prop_separator = f';{newline}    '
+            return f"{selector} {{{newline}    {prop_separator.join(prop_lines)};{newline}}}"
         
         # Match CSS rules and randomize properties
         pattern = r'([^{]+)\s*{\s*([^}]+)\s*}'
         content = re.sub(pattern, randomize_rule, content)
+        
+        return content
+    
+    def add_font_variations(self, content):
+        """Add font stack variations for anti-fingerprinting"""
+        
+        # Alternative web-safe font stacks
+        font_variations = {
+            'Arial': [
+                'Arial, Helvetica, sans-serif',
+                'Arial, "Helvetica Neue", sans-serif', 
+                '"Segoe UI", Arial, sans-serif'
+            ],
+            'Helvetica': [
+                'Helvetica, Arial, sans-serif',
+                '"Helvetica Neue", Helvetica, sans-serif',
+                'system-ui, Helvetica, sans-serif'
+            ],
+            'sans-serif': [
+                'system-ui, -apple-system, sans-serif',
+                '"Segoe UI", Roboto, sans-serif',
+                'BlinkMacSystemFont, "Segoe UI", sans-serif'
+            ]
+        }
+        
+        # Apply font variations randomly
+        for original_font, variations in font_variations.items():
+            if original_font in content:
+                replacement = random.choice(variations)
+                content = content.replace(f'font-family: {original_font}', f'font-family: {replacement}')
+                content = content.replace(f"font-family: '{original_font}'", f"font-family: {replacement}")
+                content = content.replace(f'font-family: "{original_font}"', f"font-family: {replacement}")
+        
+        # Add subtle font-weight variations
+        weight_variations = {
+            'font-weight: 400': f'font-weight: {random.choice([400, 450, 500])}',
+            'font-weight: 600': f'font-weight: {random.choice([600, 650, 700])}',
+            'font-weight: 700': f'font-weight: {random.choice([700, 750, 800])}'
+        }
+        
+        for original, variation in weight_variations.items():
+            if random.random() < 0.3:  # 30% chance to apply variation
+                content = content.replace(original, variation)
         
         return content
     
@@ -311,6 +407,51 @@ class UniqueGenerator:
         
         return content
     
+    def add_dynamic_inline_styles(self, content):
+        """Add subtle inline style variations for anti-fingerprinting"""
+        
+        # Define micro-variations for common CSS properties
+        padding_variations = [
+            f"{random.randint(10, 15)}.{random.randint(1, 9)}px",
+            f"{random.randint(8, 12)}px",
+            f"0.{random.randint(6, 14)}rem"
+        ]
+        
+        margin_variations = [
+            f"{random.randint(5, 10)}.{random.randint(2, 8)}px",
+            f"{random.randint(4, 8)}px auto",
+            f"0 {random.randint(8, 16)}px"
+        ]
+        
+        border_radius_variations = [
+            f"{random.randint(6, 12)}px",
+            f"{random.randint(4, 8)}.{random.randint(1, 5)}px",
+            f"{random.randint(10, 20)}%"
+        ]
+        
+        # Add inline styles to random elements
+        style_additions = [
+            f'style="padding: {random.choice(padding_variations)};"',
+            f'style="margin: {random.choice(margin_variations)};"',
+            f'style="border-radius: {random.choice(border_radius_variations)};"',
+            f'style="opacity: 0.{random.randint(95, 99)};"',
+            f'style="letter-spacing: {random.choice([0.1, 0.2, 0.3, -0.1])}px;"'
+        ]
+        
+        # Apply random inline styles to card elements
+        if random.random() < 0.3:
+            content = re.sub(r'(<div class="[^"]*card[^"]*")', 
+                           lambda m: f'{m.group(1)} {random.choice(style_additions)}', 
+                           content, count=random.randint(1, 3))
+        
+        # Apply to button elements
+        if random.random() < 0.4:
+            content = re.sub(r'(<[^>]*class="[^"]*btn[^"]*")', 
+                           lambda m: f'{m.group(1)} {random.choice(style_additions)}', 
+                           content, count=random.randint(1, 2))
+        
+        return content
+    
     def add_random_elements(self, output_dir):
         """Add random elements like meta tags, hidden divs, and other obfuscation"""
         html_files = list(Path(output_dir).rglob("*.html")) + list(Path(output_dir).rglob("*.php"))
@@ -320,12 +461,47 @@ class UniqueGenerator:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 
-                # Add random meta tags
+                # Add random meta tags with variations
                 random_meta = []
-                meta_names = ['generator', 'author', 'copyright', 'rating', 'distribution']
-                for name in random.sample(meta_names, random.randint(2, 4)):
-                    value = generate_random_string(random.randint(8, 16))
+                meta_names = ['generator', 'author', 'copyright', 'rating', 'distribution', 'robots', 'theme-color']
+                
+                # Generate varied meta content
+                for name in random.sample(meta_names, random.randint(3, 5)):
+                    if name == 'robots':
+                        value = random.choice(['index,follow', 'index,nofollow', 'noindex,follow'])
+                    elif name == 'theme-color':
+                        value = f"#{random.randint(0, 255):02x}{random.randint(0, 255):02x}{random.randint(0, 255):02x}"
+                    else:
+                        value = generate_random_string(random.randint(8, 16))
                     random_meta.append(f'<meta name="{name}" content="{value}">')
+                
+                # Vary title format if present
+                title_variations = [
+                    lambda site: f"{site} - Social Casino Games",
+                    lambda site: f"Free Casino Games at {site}",
+                    lambda site: f"{site} | Play Free Slots Online",
+                    lambda site: f"Online Casino Games - {site}",
+                    lambda site: f"{site}: Free Social Gaming"
+                ]
+                
+                if '<title>' in content:
+                    # Extract site name from existing title
+                    title_match = re.search(r'<title>([^<]+)</title>', content)
+                    if title_match:
+                        current_title = title_match.group(1)
+                        site_name = current_title.split(' - ')[0].split(' | ')[0].split(': ')[0]
+                        new_title = random.choice(title_variations)(site_name)
+                        content = re.sub(r'<title>[^<]+</title>', f'<title>{new_title}</title>', content)
+                
+                # Add varied meta description
+                desc_templates = [
+                    "Play free social casino games online. Entertainment only, no real money gambling.",
+                    "Enjoy the best free casino games for entertainment. No deposits required.",
+                    "Free social gaming experience with casino-style games. Play for fun!",
+                    "Entertainment-focused casino games. No real money, just pure fun.",
+                    "Social casino gaming platform. Free to play, entertainment only."
+                ]
+                random_meta.append(f'<meta name="description" content="{random.choice(desc_templates)}">')
                 
                 # Insert meta tags before closing head tag
                 if '</head>' in content:
@@ -348,6 +524,77 @@ class UniqueGenerator:
                     
             except Exception as e:
                 print_colored(f"❌ Error adding random elements to {file_path}: {e}", Fore.RED)
+    
+    def vary_css_delivery(self, output_dir):
+        """Vary CSS delivery method for anti-fingerprinting"""
+        html_files = list(Path(output_dir).rglob("*.html")) + list(Path(output_dir).rglob("*.php"))
+        
+        for file_path in html_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # 30% chance to inline critical CSS
+                if random.random() < 0.3:
+                    css_file = Path(output_dir) / "css" / "style.css"
+                    if css_file.exists():
+                        with open(css_file, 'r', encoding='utf-8') as css_f:
+                            css_content = css_f.read()
+                        
+                        # Extract and inline critical CSS (first 50 rules)
+                        critical_css = self.extract_critical_css(css_content)
+                        
+                        # Add inline style block
+                        style_block = f'\n<style>\n{critical_css}\n</style>\n'
+                        content = content.replace('</head>', style_block + '</head>')
+                        
+                        # Modify external stylesheet link to load non-critical CSS
+                        content = content.replace(
+                            '<link rel="stylesheet" href="css/style.css">',
+                            '<link rel="stylesheet" href="css/style.css" media="print" onload="this.media=\'all\'; this.onload=null;">'
+                        )
+                
+                # 20% chance to add CSS custom properties variation
+                if random.random() < 0.2:
+                    custom_props = self.generate_css_custom_properties()
+                    style_block = f'\n<style>\n:root {{\n{custom_props}\n}}\n</style>\n'
+                    content = content.replace('</head>', style_block + '</head>')
+                
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                    
+            except Exception as e:
+                print_colored(f"❌ Error varying CSS delivery for {file_path}: {e}", Fore.RED)
+    
+    def extract_critical_css(self, css_content):
+        """Extract critical CSS rules (basic selectors)"""
+        lines = css_content.split('\n')
+        critical_lines = []
+        brace_count = 0
+        rule_count = 0
+        
+        for line in lines:
+            critical_lines.append(line)
+            if '{' in line:
+                brace_count += line.count('{')
+            if '}' in line:
+                brace_count -= line.count('}')
+                if brace_count == 0:
+                    rule_count += 1
+                    if rule_count >= 50:  # Limit to first 50 rules
+                        break
+        
+        return '\n'.join(critical_lines)
+    
+    def generate_css_custom_properties(self):
+        """Generate unique CSS custom properties"""
+        return f"""
+    --unique-spacing: {random.randint(2, 8)}px;
+    --unique-radius: {random.randint(4, 12)}px;
+    --unique-opacity: 0.{random.randint(85, 95)};
+    --unique-shadow: 0 {random.randint(2, 6)}px {random.randint(10, 20)}px rgba(0,0,0,0.{random.randint(1, 3)});
+    --unique-transition: {random.choice(['0.2s', '0.3s', '0.4s'])} ease;
+        """.strip()
     
     def generate_build_files(self, output_dir):
         """Generate unique build and meta files"""
