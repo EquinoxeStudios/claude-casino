@@ -1,28 +1,16 @@
 import asyncio
 import requests
 from pathlib import Path
-from jinja2 import Template, Environment, DictLoader
+from jinja2 import Template, Environment, FileSystemLoader
 from utils import create_directory, save_json, get_file_extension, slugify, print_colored
 from colorama import Fore
 
 class WebsiteBuilder:
     def __init__(self):
-        self.templates = {}
-        self.load_templates()
-    
-    def load_templates(self):
-        """Load HTML templates"""
-        self.templates = {
-            'base.html': self.get_base_template(),
-            'homepage.html': self.get_homepage_template(),
-            'games.html': self.get_games_template(),
-            'game_detail.html': self.get_game_detail_template(),
-            'about.html': self.get_about_template(),
-            'legal.html': self.get_legal_template(),
-            'contact.html': self.get_contact_template()
-        }
-        # Create environment after templates are loaded
-        self.env = Environment(loader=DictLoader(self.templates))
+        # Use FileSystemLoader to load external template files
+        template_dir = Path(__file__).parent  # Current directory where templates are located
+        self.env = Environment(loader=FileSystemLoader(template_dir))
+        self.env.filters['safe'] = lambda x: x  # Add safe filter for HTML content
     
     async def build_website(self, output_dir, content, design_system, images, games, deployment_type="noip"):
         """Build complete website"""
@@ -82,34 +70,14 @@ class WebsiteBuilder:
             print_colored(f"❌ Error downloading images: {e}", Fore.RED)
     
     async def generate_assets(self, design_system, output_dir):
-        """Generate CSS and JavaScript files"""
-        # Generate base CSS
-        base_css = self.generate_base_css(design_system)
-        with open(f"{output_dir}/css/base.css", 'w', encoding='utf-8') as f:
-            f.write(base_css)
+        """Generate CSS and JavaScript files for the new template structure"""
+        # Generate main stylesheet that matches the template design
+        main_css = self.generate_main_css(design_system)
+        with open(f"{output_dir}/css/style.css", 'w', encoding='utf-8') as f:
+            f.write(main_css)
         
-        # Generate homepage CSS
-        homepage_css = self.generate_homepage_css(design_system)
-        with open(f"{output_dir}/css/homepage.css", 'w', encoding='utf-8') as f:
-            f.write(homepage_css)
-        
-        # Generate games CSS
-        games_css = self.generate_games_css(design_system)
-        with open(f"{output_dir}/css/games.css", 'w', encoding='utf-8') as f:
-            f.write(games_css)
-        
-        # Generate game detail CSS
-        game_css = self.generate_game_css(design_system)
-        with open(f"{output_dir}/css/game.css", 'w', encoding='utf-8') as f:
-            f.write(game_css)
-        
-        # Generate legal CSS
-        legal_css = self.generate_legal_css(design_system)
-        with open(f"{output_dir}/css/legal.css", 'w', encoding='utf-8') as f:
-            f.write(legal_css)
-        
-        # Generate JavaScript files
-        self.generate_javascript_files(output_dir)
+        # Generate JavaScript files for sidebar and game functionality
+        self.generate_template_javascript_files(output_dir)
         
         print_colored("✅ CSS and JS assets generated", Fore.GREEN)
     
@@ -203,60 +171,1026 @@ Sitemap: /sitemap.xml"""
     
     def render_homepage(self, content, design_system, games):
         """Render homepage HTML"""
-        template = self.env.get_template('homepage.html')
-        return template.render(
-            content=content,
-            design_system=design_system,
-            featured_games=games[:6],
-            new_games=games[6:14] if len(games) > 6 else games
-        )
+        template = self.env.get_template('homepage_template.html')
+        
+        # Prepare data structure for the template
+        template_data = {
+            'site_name': content['site_name'],
+            'site_tagline': 'Social Casino Games',
+            'canonical_url': '/',
+            'favicon_path': 'images/favicon.ico',
+            'primary_font': design_system['typography']['heading_font'],
+            'hero': {
+                'title': content['pages']['homepage']['hero']['headline'],
+                'description': content['pages']['homepage']['hero']['subheadline'],
+                'background_image': 'images/hero.jpg',
+                'overlay_opacity': 0.6,
+                'cta_text': content['pages']['homepage']['cta']['button'],
+                'cta_url': '/games.html',
+                'cta_icon': 'fas fa-play'
+            },
+            'content_sections': [
+                {
+                    'subtitle': 'Most popular games on our platform',
+                    'items': [self.format_game_for_template(game) for game in games[:6]]
+                },
+                {
+                    'subtitle': 'Latest additions to our game collection', 
+                    'items': [self.format_game_for_template(game) for game in games[6:12] if len(games) > 6]
+                }
+            ],
+            'about': {
+                'content': content['pages']['homepage']['about']['content'].split('\n')
+            },
+            'about_url': '/about.html',
+            'contact_url': '/contact.html',
+            'terms_url': '/terms.html',
+            'privacy_url': '/privacy.html',
+            'cookies_url': '/cookies.html',
+            'responsible_url': '/responsible.html',
+            'footer': {
+                'disclaimer': {
+                    'title': 'Disclaimer',
+                    'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
+                },
+                'copyright_year': '2024',
+                'domain_name': content['site_name'].lower().replace(' ', '')
+            }
+        }
+        
+        return template.render(**template_data)
+    
+    def format_game_for_template(self, game):
+        """Format game data for template usage"""
+        return {
+            'title': game.get('name', 'Unknown Game'),
+            'image': game.get('local_thumbnail', game.get('thumbnail', 'images/placeholder-game.jpg')),
+            'url': f"/games/{game.get('slug', 'unknown')}.html",
+            'slug': game.get('slug', 'unknown'),
+            'provider': game.get('provider', 'Unknown'),
+            'cta_text': 'Play Now'
+        }
     
     def render_games_page(self, content, design_system, games):
         """Render games listing page"""
-        template = self.env.get_template('games.html')
-        return template.render(
-            content=content,
-            design_system=design_system,
-            games=games
-        )
+        template = self.env.get_template('games_template.html')
+        
+        template_data = {
+            'site_name': content['site_name'],
+            'canonical_url': '/games.html',
+            'favicon_path': 'images/favicon.ico',
+            'primary_font': design_system['typography']['heading_font'],
+            'total_games': len(games),
+            'all_games': [self.format_game_for_template(game) for game in games],
+            'path_prefix': '',
+            'about_url': '/about.html',
+            'contact_url': '/contact.html',
+            'terms_url': '/terms.html',
+            'privacy_url': '/privacy.html',
+            'cookies_url': '/cookies.html',
+            'responsible_url': '/responsible.html',
+            'footer': {
+                'disclaimer': {
+                    'title': 'Disclaimer',
+                    'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
+                },
+                'copyright_year': '2024',
+                'domain_name': content['site_name'].lower().replace(' ', '')
+            }
+        }
+        
+        return template.render(**template_data)
     
     def render_game_detail_page(self, content, design_system, game, all_games):
         """Render individual game detail page"""
         # Get similar games (same category, exclude current)
         similar_games = [g for g in all_games if g['category'] == game['category'] and g['id'] != game['id']][:4]
         
-        template = self.env.get_template('game_detail.html')
-        return template.render(
-            content=content,
-            design_system=design_system,
-            game=game,
-            similar_games=similar_games
-        )
+        template = self.env.get_template('game_template.html')
+        
+        template_data = {
+            'site_name': content['site_name'],
+            'canonical_url': f'/games/{game.get("slug", "unknown")}.html',
+            'favicon_path': '../images/favicon.ico',
+            'primary_font': design_system['typography']['heading_font'],
+            'game': {
+                'title': game.get('name', 'Unknown Game'),
+                'iframe_url': game.get('demo_url', 'about:blank')
+            },
+            'about_url': '/about.html',
+            'contact_url': '/contact.html',
+            'terms_url': '/terms.html',
+            'privacy_url': '/privacy.html',
+            'cookies_url': '/cookies.html',
+            'responsible_url': '/responsible.html',
+            'footer': {
+                'disclaimer': {
+                    'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
+                },
+                'copyright_year': '2024',
+                'domain_name': content['site_name'].lower().replace(' ', '')
+            }
+        }
+        
+        return template.render(**template_data)
     
     def render_about_page(self, content, design_system):
         """Render about page"""
-        template = self.env.get_template('about.html')
-        return template.render(
-            content=content,
-            design_system=design_system
-        )
+        template = self.env.get_template('about_template.html')
+        
+        template_data = {
+            'site_name': content['site_name'],
+            'canonical_url': '/about.html',
+            'favicon_path': 'images/favicon.ico',
+            'primary_font': design_system['typography']['heading_font'],
+            'about_sections': content['pages']['about']['sections'],
+            'about_url': '/about.html',
+            'contact_url': '/contact.html',
+            'terms_url': '/terms.html',
+            'privacy_url': '/privacy.html',
+            'cookies_url': '/cookies.html',
+            'responsible_url': '/responsible.html',
+            'footer': {
+                'disclaimer': {
+                    'title': 'Disclaimer',
+                    'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
+                },
+                'copyright_year': '2024',
+                'domain_name': content['site_name'].lower().replace(' ', '')
+            }
+        }
+        
+        return template.render(**template_data)
     
     def render_legal_page(self, content, design_system, page_type):
         """Render legal pages"""
-        template = self.env.get_template('legal.html')
-        return template.render(
-            content=content,
-            design_system=design_system,
-            page_type=page_type
-        )
+        template = self.env.get_template('legal_template.html')
+        
+        legal_titles = {
+            'terms': 'Terms & Conditions',
+            'privacy': 'Privacy Policy',
+            'responsible': 'Responsible Gaming'
+        }
+        
+        template_data = {
+            'site_name': content['site_name'],
+            'canonical_url': f'/{page_type}.html',
+            'favicon_path': 'images/favicon.ico',
+            'primary_font': design_system['typography']['heading_font'],
+            'page_title': legal_titles.get(page_type, 'Legal Information'),
+            'page_subtitle': f'Please read our {legal_titles.get(page_type, "legal information")} carefully.',
+            'page_type': page_type,
+            'content': content['pages']['legal'][page_type]['content'],
+            'last_updated': '2024-01-01',
+            'about_url': '/about.html',
+            'contact_url': '/contact.html',
+            'terms_url': '/terms.html',
+            'privacy_url': '/privacy.html',
+            'cookies_url': '/cookies.html',
+            'responsible_url': '/responsible.html',
+            'footer': {
+                'disclaimer': {
+                    'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
+                },
+                'copyright_year': '2024',
+                'domain_name': content['site_name'].lower().replace(' ', '')
+            }
+        }
+        
+        return template.render(**template_data)
     
     def render_contact_page(self, content, design_system):
         """Render contact page"""
-        template = self.env.get_template('contact.html')
-        return template.render(
-            content=content,
-            design_system=design_system
-        )
+        template = self.env.get_template('contact_template.html')
+        
+        template_data = {
+            'site_name': content['site_name'],
+            'canonical_url': '/contact.html',
+            'favicon_path': 'images/favicon.ico',
+            'primary_font': design_system['typography']['heading_font'],
+            'about_url': '/about.html',
+            'contact_url': '/contact.html',
+            'terms_url': '/terms.html',
+            'privacy_url': '/privacy.html',
+            'cookies_url': '/cookies.html',
+            'responsible_url': '/responsible.html',
+            'footer': {
+                'disclaimer': {
+                    'title': 'Disclaimer',
+                    'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
+                },
+                'copyright_year': '2024',
+                'domain_name': content['site_name'].lower().replace(' ', '')
+            }
+        }
+        
+        return template.render(**template_data)
+    
+    def generate_main_css(self, design_system):
+        """Generate main CSS file that matches the template structure"""
+        return f"""/* Main CSS for Casino Website Template */
+:root {{
+    --primary-color: {design_system['colors']['primary']};
+    --secondary-color: {design_system['colors']['secondary']};
+    --accent-color: {design_system['colors']['accent']};
+    --background-color: {design_system['colors']['background']};
+    --surface-color: {design_system['colors']['surface']};
+    --text-color: {design_system['colors']['text_primary']};
+    --text-secondary: {design_system['colors']['text_secondary']};
+    --success-color: {design_system['colors']['success']};
+    --warning-color: {design_system['colors']['warning']};
+    --error-color: {design_system['colors']['error']};
+    
+    --heading-font: '{design_system['typography']['heading_font']}', sans-serif;
+    --body-font: '{design_system['typography']['body_font']}', sans-serif;
+    
+    --gradient-1: {design_system['gradients'][0]};
+    --gradient-2: {design_system['gradients'][1] if len(design_system['gradients']) > 1 else design_system['gradients'][0]};
+    
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 60px;
+}}
+
+* {{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}}
+
+body {{
+    font-family: var(--body-font);
+    background: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    overflow-x: hidden;
+}}
+
+/* Sidebar Styles */
+.sidebar {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--primary-color);
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+}}
+
+.sidebar-header {{
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}}
+
+.logo {{
+    font-family: var(--heading-font);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+}}
+
+.sidebar-nav {{
+    padding: 1rem 0;
+}}
+
+.nav-item {{
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}}
+
+.nav-item:hover,
+.nav-item.active {{
+    background: rgba(255,255,255,0.1);
+    border-left-color: var(--accent-color);
+}}
+
+.nav-item i {{
+    margin-right: 0.75rem;
+    width: 20px;
+}}
+
+.sidebar-toggle {{
+    position: absolute;
+    top: 50%;
+    right: -15px;
+    transform: translateY(-50%);
+    background: var(--accent-color);
+    color: var(--primary-color);
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}}
+
+/* Mobile Sidebar */
+.mobile-sidebar-toggle {{
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    background: var(--primary-color);
+    color: var(--accent-color);
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}}
+
+.sidebar-overlay {{
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+}}
+
+/* Main Content */
+.main-wrapper {{
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: margin-left 0.3s ease;
+}}
+
+/* Hero Section */
+.hero {{
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    background-attachment: fixed;
+}}
+
+.hero-content {{
+    max-width: 800px;
+    padding: 2rem;
+    z-index: 2;
+}}
+
+.hero h1 {{
+    font-family: var(--heading-font);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}}
+
+.hero p {{
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    color: rgba(255,255,255,0.9);
+}}
+
+/* Buttons */
+.btn {{
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}}
+
+.btn-primary {{
+    background: var(--gradient-1);
+    color: white;
+}}
+
+.btn-primary:hover {{
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}}
+
+.btn-large {{
+    padding: 1.2rem 2.5rem;
+    font-size: 1.1rem;
+}}
+
+/* Content Sections */
+.content-section {{
+    padding: 4rem 2rem;
+}}
+
+.section-header {{
+    text-align: center;
+    margin-bottom: 3rem;
+}}
+
+.section-title {{
+    font-family: var(--heading-font);
+    font-size: 2.5rem;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}}
+
+.section-subtitle {{
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}}
+
+/* Cards and Sliders */
+.cards-container {{
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+}}
+
+.cards-slider {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    overflow: hidden;
+}}
+
+.card {{
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface-color);
+    transition: transform 0.3s ease;
+}}
+
+.card:hover {{
+    transform: translateY(-5px);
+}}
+
+.card-thumbnail {{
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}}
+
+.card-overlay {{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    padding: 2rem 1rem 1rem;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}}
+
+.card:hover .card-overlay {{
+    transform: translateY(0);
+}}
+
+.card-title {{
+    color: white;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}}
+
+.card-cta {{
+    background: var(--accent-color);
+    color: var(--primary-color);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+}}
+
+/* Games Page Styles */
+.games-header {{
+    background: var(--gradient-1);
+    padding: 4rem 2rem 2rem;
+    text-align: center;
+    color: white;
+}}
+
+.games-header h1 {{
+    font-family: var(--heading-font);
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}}
+
+.games-count {{
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 1rem;
+}}
+
+.games-section {{
+    padding: 4rem 2rem;
+}}
+
+.games-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}}
+
+.game-card {{
+    background: var(--surface-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    position: relative;
+}}
+
+.game-card:hover {{
+    transform: scale(1.02);
+}}
+
+.game-thumbnail {{
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}}
+
+.game-overlay {{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.9));
+    display: flex;
+    align-items: flex-end;
+    padding: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}}
+
+.game-card:hover .game-overlay {{
+    opacity: 1;
+}}
+
+.game-info {{
+    color: white;
+}}
+
+.game-title {{
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}}
+
+.game-cta {{
+    background: var(--accent-color);
+    color: var(--primary-color);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+}}
+
+/* Game Page Styles */
+.game-header {{
+    background: var(--gradient-1);
+    padding: 2rem;
+    color: white;
+}}
+
+.breadcrumb {{
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}}
+
+.breadcrumb a {{
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+}}
+
+.breadcrumb-separator {{
+    margin: 0 0.5rem;
+}}
+
+.game-title {{
+    font-family: var(--heading-font);
+    font-size: 2.5rem;
+}}
+
+.game-container {{
+    padding: 2rem;
+}}
+
+.game-wrapper {{
+    max-width: 1200px;
+    margin: 0 auto;
+}}
+
+.game-iframe-container {{
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background: var(--surface-color);
+    border-radius: 12px;
+    overflow: hidden;
+}}
+
+.game-iframe {{
+    width: 100%;
+    height: 100%;
+    border: none;
+}}
+
+.game-loading {{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-color);
+    z-index: 10;
+}}
+
+.game-loading-spinner {{
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top: 3px solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}}
+
+@keyframes spin {{
+    0% {{ transform: rotate(0deg); }}
+    100% {{ transform: rotate(360deg); }}
+}}
+
+.fullscreen-btn {{
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border: none;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 20;
+}}
+
+/* Page Header */
+.page-header {{
+    background: var(--gradient-1);
+    padding: 4rem 2rem 2rem;
+    text-align: center;
+    color: white;
+}}
+
+.page-header h1 {{
+    font-family: var(--heading-font);
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}}
+
+/* About Section */
+.about-section {{
+    padding: 4rem 2rem;
+    background: var(--surface-color);
+}}
+
+.about-content {{
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}}
+
+.about-block {{
+    margin-bottom: 3rem;
+}}
+
+.about-block h2 {{
+    font-family: var(--heading-font);
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}}
+
+/* Content Wrapper */
+.content-wrapper {{
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}}
+
+/* Footer */
+.footer {{
+    background: var(--primary-color);
+    color: var(--text-color);
+    padding: 3rem 2rem 1rem;
+    margin-top: auto;
+}}
+
+.footer-content {{
+    max-width: 1200px;
+    margin: 0 auto;
+}}
+
+.footer-links {{
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}}
+
+.footer-link {{
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}}
+
+.footer-link:hover,
+.footer-link.active {{
+    color: var(--accent-color);
+}}
+
+.footer-bottom {{
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-secondary);
+}}
+
+/* Responsive Design */
+@media (max-width: 768px) {{
+    .sidebar {{
+        transform: translateX(-100%);
+    }}
+    
+    .sidebar.active {{
+        transform: translateX(0);
+    }}
+    
+    .sidebar-overlay.active {{
+        display: block;
+    }}
+    
+    .mobile-sidebar-toggle {{
+        display: block;
+    }}
+    
+    .main-wrapper {{
+        margin-left: 0;
+    }}
+    
+    .hero h1 {{
+        font-size: 2rem;
+    }}
+    
+    .section-title {{
+        font-size: 2rem;
+    }}
+    
+    .cards-slider {{
+        grid-template-columns: 1fr;
+    }}
+    
+    .footer-links {{
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }}
+}}
+
+/* Slider Navigation */
+.slider-nav {{
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: none;
+}}
+
+.slider-prev {{
+    left: -20px;
+}}
+
+.slider-next {{
+    right: -20px;
+}}
+
+.slider-dots {{
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}}
+
+.dot {{
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    cursor: pointer;
+    transition: background 0.3s ease;
+}}
+
+.dot.active {{
+    background: var(--accent-color);
+}}"""
+    
+    def generate_template_javascript_files(self, output_dir):
+        """Generate JavaScript files for the template functionality"""
+        
+        # Main JavaScript for sidebar and general functionality
+        main_js = '''// Main JavaScript for Casino Website Template
+
+// Sidebar functionality
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainWrapper = document.getElementById('mainWrapper');
+    
+    sidebar.classList.toggle('collapsed');
+    if (sidebar.classList.contains('collapsed')) {
+        mainWrapper.style.marginLeft = 'var(--sidebar-collapsed-width)';
+    } else {
+        mainWrapper.style.marginLeft = 'var(--sidebar-width)';
+    }
+}
+
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    sidebar.classList.add('active');
+    overlay.classList.add('active');
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+}
+
+// Image error handling
+function handleImageError(img) {
+    img.style.display = 'none';
+    const placeholder = document.createElement('div');
+    placeholder.className = 'image-placeholder';
+    placeholder.style.cssText = `
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(45deg, #333, #555);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.9rem;
+    `;
+    placeholder.textContent = 'Game Image';
+    img.parentNode.insertBefore(placeholder, img);
+}
+
+function handleImageLoad(img) {
+    img.style.opacity = '1';
+}
+
+// Game tracking
+function trackGameClick(gameTitle, gameUrl, gameProvider) {
+    console.log('Game clicked:', { gameTitle, gameUrl, gameProvider });
+    // Add analytics tracking here if needed
+}
+
+// Game page functionality
+function hideLoading() {
+    const loading = document.getElementById('gameLoading');
+    if (loading) {
+        loading.style.display = 'none';
+    }
+}
+
+function showError() {
+    const loading = document.getElementById('gameLoading');
+    if (loading) {
+        loading.innerHTML = '<p>Error loading game. Please try again later.</p>';
+    }
+}
+
+function toggleFullscreen() {
+    const container = document.querySelector('.game-iframe-container');
+    const btn = document.querySelector('.fullscreen-btn i');
+    
+    if (!document.fullscreenElement) {
+        container.requestFullscreen().then(() => {
+            btn.className = 'fas fa-compress';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.className = 'fas fa-expand';
+        });
+    }
+}
+
+// Slider functionality
+function slideCards(sectionId, direction) {
+    const slider = document.getElementById(sectionId + 'Slider');
+    const cards = slider.children;
+    const cardWidth = cards[0].offsetWidth + 32; // 32px for gap
+    const currentScroll = slider.scrollLeft;
+    const newScroll = currentScroll + (direction * cardWidth * 2);
+    
+    slider.scrollTo({
+        left: newScroll,
+        behavior: 'smooth'
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set active navigation item
+    const currentPage = window.location.pathname;
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href === currentPage || (currentPage === '/' && href === '/')) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+    
+    // Close mobile sidebar when clicking on nav items
+    navItems.forEach(item => {
+        item.addEventListener('click', closeMobileSidebar);
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileSidebar();
+        }
+    });
+    
+    // Initialize slider dots if present
+    initializeSliderDots();
+});
+
+function initializeSliderDots() {
+    const sliders = document.querySelectorAll('.cards-slider');
+    
+    sliders.forEach((slider, index) => {
+        const dotsContainer = document.getElementById(`section${index}Dots`);
+        if (!dotsContainer) return;
+        
+        const cardCount = slider.children.length;
+        const dotsCount = Math.ceil(cardCount / 2); // 2 cards per view
+        
+        for (let i = 0; i < dotsCount; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            if (i === 0) dot.classList.add('active');
+            
+            dot.addEventListener('click', () => {
+                const cardWidth = slider.children[0].offsetWidth + 32;
+                slider.scrollTo({
+                    left: i * cardWidth * 2,
+                    behavior: 'smooth'
+                });
+                
+                dotsContainer.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+            });
+            
+            dotsContainer.appendChild(dot);
+        }
+    });
+}'''
+        
+        with open(f"{output_dir}/js/main.js", 'w', encoding='utf-8') as f:
+            f.write(main_js)
     
     def generate_sitemap(self, content, games):
         """Generate XML sitemap"""
@@ -290,1114 +1224,3 @@ Sitemap: /sitemap.xml"""
         sitemap += """
 </urlset>"""
         return sitemap
-    
-    # Template definitions will be in separate methods for clarity
-    def get_base_template(self):
-        """Base HTML template structure"""
-        return """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ content.site_name }}{% endblock %}</title>
-    <meta name="description" content="{% block description %}{{ content.site_name }} - Social Casino Games{% endblock %}">
-    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="css/base.css">
-    {% block additional_css %}{% endblock %}
-</head>
-<body>
-    <header class="main-header">
-        <nav class="navbar">
-            <div class="nav-container">
-                <a href="index.html" class="nav-logo">{{ content.site_name }}</a>
-                <div class="nav-menu">
-                    <a href="index.html" class="nav-link">Home</a>
-                    <a href="games.html" class="nav-link">Games</a>
-                    <a href="about.html" class="nav-link">About</a>
-                    <a href="contact.html" class="nav-link">Contact</a>
-                </div>
-                <div class="nav-toggle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-        </nav>
-    </header>
-    
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-    
-    <footer class="main-footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <h3>{{ content.site_name }}</h3>
-                <p>The best social casino experience</p>
-            </div>
-            <div class="footer-section">
-                <h4>Legal</h4>
-                <a href="terms.html">Terms & Conditions</a>
-                <a href="privacy.html">Privacy Policy</a>
-                <a href="responsible.html">Responsible Gaming</a>
-            </div>
-            <div class="footer-section">
-                <h4>Support</h4>
-                <a href="contact.html">Contact Us</a>
-                <a href="about.html">About Us</a>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 {{ content.site_name }}. Entertainment only. No real money gambling.</p>
-        </div>
-    </footer>
-    
-    <script src="js/base.js"></script>
-    {% block additional_js %}{% endblock %}
-</body>
-</html>"""
-    
-    def get_homepage_template(self):
-        """Homepage template"""
-        return """{% extends "base.html" %}
-
-{% block additional_css %}
-<link rel="stylesheet" href="css/homepage.css">
-{% endblock %}
-
-{% block content %}
-<section class="hero-section">
-    <div class="hero-content">
-        <h1 class="hero-title">{{ content.pages.homepage.hero.headline }}</h1>
-        <p class="hero-subtitle">{{ content.pages.homepage.hero.subheadline }}</p>
-        <a href="games.html" class="cta-button">{{ content.pages.homepage.cta.button }}</a>
-    </div>
-    <div class="hero-image">
-        <img src="images/hero.jpg" alt="Casino Hero" loading="lazy">
-    </div>
-</section>
-
-<section class="featured-games">
-    <div class="container">
-        <h2>Featured Games</h2>
-        <div class="games-grid">
-            {% for game in featured_games %}
-            <div class="game-card">
-                <img src="{{ game.local_thumbnail or game.thumbnail }}" alt="{{ game.name }}" loading="lazy">
-                <h3>{{ game.name }}</h3>
-                <p>{{ game.provider }}</p>
-                <a href="games/{{ game.slug }}.html" class="play-button">Play Now</a>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<section class="about-section">
-    <div class="container">
-        <h2>{{ content.pages.homepage.about.title }}</h2>
-        <p>{{ content.pages.homepage.about.content }}</p>
-    </div>
-</section>
-
-<section class="features-section">
-    <div class="container">
-        <h2>Why Choose Us</h2>
-        <div class="features-grid">
-            {% for feature in content.pages.homepage.features %}
-            <div class="feature-card">
-                <h3>{{ feature.title }}</h3>
-                <p>{{ feature.description }}</p>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endblock %}
-
-{% block additional_js %}
-<script src="js/homepage.js"></script>
-{% endblock %}"""
-    
-    def get_games_template(self):
-        """Games listing template"""
-        return """{% extends "base.html" %}
-
-{% block title %}Games - {{ content.site_name }}{% endblock %}
-
-{% block additional_css %}
-<link rel="stylesheet" href="css/games.css">
-{% endblock %}
-
-{% block content %}
-<section class="games-header">
-    <div class="container">
-        <h1>Casino Games</h1>
-        <p>Choose from our collection of exciting casino games</p>
-    </div>
-</section>
-
-<section class="games-listing">
-    <div class="container">
-        <div class="games-filters">
-            <button class="filter-btn active" data-category="all">All Games</button>
-            <button class="filter-btn" data-category="slots">Slots</button>
-            <button class="filter-btn" data-category="table">Table Games</button>
-            <button class="filter-btn" data-category="card">Card Games</button>
-        </div>
-        
-        <div class="games-grid">
-            {% for game in games %}
-            <div class="game-card" data-category="{{ game.category }}">
-                <img src="{{ game.local_thumbnail or game.thumbnail }}" alt="{{ game.name }}" loading="lazy">
-                <div class="game-info">
-                    <h3>{{ game.name }}</h3>
-                    <p class="game-provider">{{ game.provider }}</p>
-                    <div class="game-stats">
-                        <span>RTP: {{ game.rtp }}</span>
-                        <span>{{ game.volatility }} Vol.</span>
-                    </div>
-                    <a href="games/{{ game.slug }}.html" class="play-button">Play Now</a>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endblock %}
-
-{% block additional_js %}
-<script src="js/games.js"></script>
-{% endblock %}"""
-    
-    def get_game_detail_template(self):
-        """Game detail template"""
-        return """{% extends "base.html" %}
-
-{% block title %}{{ game.name }} - {{ content.site_name }}{% endblock %}
-
-{% block additional_css %}
-<link rel="stylesheet" href="css/game.css">
-{% endblock %}
-
-{% block content %}
-<section class="game-header">
-    <div class="container">
-        <nav class="breadcrumb">
-            <a href="../index.html">Home</a> > 
-            <a href="../games.html">Games</a> > 
-            <span>{{ game.name }}</span>
-        </nav>
-        <h1>{{ game.name }}</h1>
-        <p class="game-provider">by {{ game.provider }}</p>
-    </div>
-</section>
-
-<section class="game-play">
-    <div class="container">
-        <div class="game-frame">
-            {{ game.demo_url | safe if game.demo_url else '<div class="game-placeholder">Game demo not available</div>' }}
-        </div>
-        <button class="fullscreen-btn">⛶ Fullscreen</button>
-    </div>
-</section>
-
-<section class="game-info">
-    <div class="container">
-        <div class="game-details">
-            <h2>Game Information</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <strong>RTP:</strong> {{ game.rtp }}
-                </div>
-                <div class="info-item">
-                    <strong>Volatility:</strong> {{ game.volatility }}
-                </div>
-                <div class="info-item">
-                    <strong>Paylines:</strong> {{ game.paylines }}
-                </div>
-                <div class="info-item">
-                    <strong>Reels:</strong> {{ game.reels }}
-                </div>
-            </div>
-            {% if game.description %}
-            <p class="game-description">{{ game.description }}</p>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
-{% if similar_games %}
-<section class="similar-games">
-    <div class="container">
-        <h2>Similar Games</h2>
-        <div class="games-grid">
-            {% for similar_game in similar_games %}
-            <div class="game-card">
-                <img src="{{ similar_game.local_thumbnail or similar_game.thumbnail }}" alt="{{ similar_game.name }}" loading="lazy">
-                <h3>{{ similar_game.name }}</h3>
-                <p>{{ similar_game.provider }}</p>
-                <a href="{{ similar_game.slug }}.html" class="play-button">Play Now</a>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-{% endblock %}
-
-{% block additional_js %}
-<script src="../js/game.js"></script>
-{% endblock %}"""
-    
-    def get_about_template(self):
-        """About page template"""
-        return """{% extends "base.html" %}
-
-{% block title %}About - {{ content.site_name }}{% endblock %}
-
-{% block content %}
-<section class="page-header">
-    <div class="container">
-        <h1>{{ content.pages.about.title }}</h1>
-    </div>
-</section>
-
-<section class="about-content">
-    <div class="container">
-        {% for section in content.pages.about.sections %}
-        <div class="content-section">
-            <h2>{{ section.title }}</h2>
-            <p>{{ section.content }}</p>
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% endblock %}"""
-    
-    def get_legal_template(self):
-        """Legal pages template"""
-        return """{% extends "base.html" %}
-
-{% block title %}{{ content.pages.legal[page_type].title }} - {{ content.site_name }}{% endblock %}
-
-{% block additional_css %}
-<link rel="stylesheet" href="css/legal.css">
-{% endblock %}
-
-{% block content %}
-<section class="page-header">
-    <div class="container">
-        <h1>{{ content.pages.legal[page_type].title }}</h1>
-    </div>
-</section>
-
-<section class="legal-content">
-    <div class="container">
-        <div class="content-text">
-            <p>{{ content.pages.legal[page_type].content }}</p>
-        </div>
-    </div>
-</section>
-{% endblock %}"""
-    
-    def get_contact_template(self):
-        """Contact page template"""
-        return """{% extends "base.html" %}
-
-{% block title %}Contact - {{ content.site_name }}{% endblock %}
-
-{% block content %}
-<section class="page-header">
-    <div class="container">
-        <h1>Contact Us</h1>
-    </div>
-</section>
-
-<section class="contact-content">
-    <div class="container">
-        <div class="contact-info">
-            <h2>Get in Touch</h2>
-            <p>Have questions? We'd love to hear from you!</p>
-            <p>Email: support@{{ content.site_name.lower().replace(' ', '') }}.com</p>
-        </div>
-    </div>
-</section>
-{% endblock %}"""
-    
-    def generate_base_css(self, design_system):
-        """Generate base CSS with design system"""
-        return f"""/* Base Styles */
-* {{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}}
-
-:root {{
-    --primary-color: {design_system['colors']['primary']};
-    --secondary-color: {design_system['colors']['secondary']};
-    --accent-color: {design_system['colors']['accent']};
-    --background-color: {design_system['colors']['background']};
-    --surface-color: {design_system['colors']['surface']};
-    --text-primary: {design_system['colors']['text_primary']};
-    --text-secondary: {design_system['colors']['text_secondary']};
-    --success-color: {design_system['colors']['success']};
-    --warning-color: {design_system['colors']['warning']};
-    --error-color: {design_system['colors']['error']};
-    
-    --heading-font: '{design_system['typography']['heading_font']}', sans-serif;
-    --body-font: '{design_system['typography']['body_font']}', sans-serif;
-    
-    --gradient-1: {design_system['gradients'][0]};
-    --gradient-2: {design_system['gradients'][1] if len(design_system['gradients']) > 1 else design_system['gradients'][0]};
-}}
-
-@import url('https://fonts.googleapis.com/css2?family={design_system['typography']['heading_font'].replace(' ', '+')}:wght@400;500;600;700&family={design_system['typography']['body_font'].replace(' ', '+')}:wght@300;400;500&display=swap');
-
-body {{
-    font-family: var(--body-font);
-    line-height: 1.6;
-    color: var(--text-primary);
-    background: var(--background-color);
-}}
-
-.container {{
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}}
-
-/* Navigation */
-.main-header {{
-    background: var(--primary-color);
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-}}
-
-.navbar {{
-    padding: 1rem 0;
-}}
-
-.nav-container {{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}}
-
-.nav-logo {{
-    font-family: var(--heading-font);
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--accent-color);
-    text-decoration: none;
-}}
-
-.nav-menu {{
-    display: flex;
-    gap: 2rem;
-}}
-
-.nav-link {{
-    color: var(--text-primary);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}}
-
-.nav-link:hover {{
-    color: var(--accent-color);
-}}
-
-.nav-toggle {{
-    display: none;
-    flex-direction: column;
-    cursor: pointer;
-}}
-
-.nav-toggle span {{
-    width: 25px;
-    height: 3px;
-    background: var(--text-primary);
-    margin: 3px 0;
-    transition: 0.3s;
-}}
-
-/* Main Content */
-main {{
-    margin-top: 80px;
-    min-height: calc(100vh - 160px);
-}}
-
-/* Buttons */
-.cta-button, .play-button {{
-    background: var(--gradient-1);
-    color: white;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-block;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    cursor: pointer;
-}}
-
-.cta-button:hover, .play-button:hover {{
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}}
-
-/* Footer */
-.main-footer {{
-    background: var(--primary-color);
-    color: var(--text-primary);
-    padding: 3rem 0 1rem;
-    margin-top: 4rem;
-}}
-
-.footer-container {{
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-}}
-
-.footer-section h3, .footer-section h4 {{
-    font-family: var(--heading-font);
-    color: var(--accent-color);
-    margin-bottom: 1rem;
-}}
-
-.footer-section a {{
-    color: var(--text-secondary);
-    text-decoration: none;
-    display: block;
-    margin-bottom: 0.5rem;
-    transition: color 0.3s ease;
-}}
-
-.footer-section a:hover {{
-    color: var(--accent-color);
-}}
-
-.footer-bottom {{
-    text-align: center;
-    padding-top: 2rem;
-    border-top: 1px solid var(--secondary-color);
-    margin-top: 2rem;
-    color: var(--text-secondary);
-}}
-
-/* Responsive Design */
-@media (max-width: 768px) {{
-    .nav-menu {{
-        display: none;
-    }}
-    
-    .nav-toggle {{
-        display: flex;
-    }}
-    
-    .container {{
-        padding: 0 15px;
-    }}
-}}"""
-    
-    def generate_homepage_css(self, design_system):
-        """Generate homepage-specific CSS"""
-        return f"""/* Homepage Styles */
-.hero-section {{
-    background: var(--gradient-1);
-    padding: 6rem 0 4rem;
-    display: flex;
-    align-items: center;
-    min-height: 600px;
-}}
-
-.hero-content {{
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-    align-items: center;
-}}
-
-.hero-title {{
-    font-family: var(--heading-font);
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    font-weight: 700;
-    margin-bottom: 1rem;
-    color: white;
-}}
-
-.hero-subtitle {{
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
-    color: rgba(255,255,255,0.9);
-}}
-
-.hero-image img {{
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}}
-
-/* Featured Games */
-.featured-games {{
-    padding: 4rem 0;
-    background: var(--surface-color);
-}}
-
-.featured-games h2 {{
-    font-family: var(--heading-font);
-    font-size: 2.5rem;
-    text-align: center;
-    margin-bottom: 3rem;
-    color: var(--accent-color);
-}}
-
-.games-grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
-}}
-
-.game-card {{
-    background: var(--primary-color);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}}
-
-.game-card:hover {{
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}}
-
-.game-card img {{
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}}
-
-.game-card h3 {{
-    font-family: var(--heading-font);
-    padding: 1rem;
-    margin: 0;
-    color: var(--accent-color);
-}}
-
-.game-card p {{
-    padding: 0 1rem;
-    color: var(--text-secondary);
-    margin: 0;
-}}
-
-.game-card .play-button {{
-    margin: 1rem;
-    width: calc(100% - 2rem);
-    text-align: center;
-}}
-
-/* About Section */
-.about-section {{
-    padding: 4rem 0;
-    text-align: center;
-}}
-
-.about-section h2 {{
-    font-family: var(--heading-font);
-    font-size: 2.5rem;
-    margin-bottom: 2rem;
-    color: var(--accent-color);
-}}
-
-.about-section p {{
-    font-size: 1.1rem;
-    max-width: 800px;
-    margin: 0 auto;
-    color: var(--text-secondary);
-}}
-
-/* Features Section */
-.features-section {{
-    padding: 4rem 0;
-    background: var(--surface-color);
-}}
-
-.features-section h2 {{
-    font-family: var(--heading-font);
-    font-size: 2.5rem;
-    text-align: center;
-    margin-bottom: 3rem;
-    color: var(--accent-color);
-}}
-
-.features-grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-}}
-
-.feature-card {{
-    background: var(--primary-color);
-    padding: 2rem;
-    border-radius: 12px;
-    text-align: center;
-    transition: transform 0.3s ease;
-}}
-
-.feature-card:hover {{
-    transform: translateY(-3px);
-}}
-
-.feature-card h3 {{
-    font-family: var(--heading-font);
-    color: var(--accent-color);
-    margin-bottom: 1rem;
-}}
-
-.feature-card p {{
-    color: var(--text-secondary);
-}}
-
-/* Responsive */
-@media (max-width: 768px) {{
-    .hero-content {{
-        grid-template-columns: 1fr;
-        text-align: center;
-    }}
-    
-    .games-grid {{
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    }}
-}}"""
-    
-    def generate_games_css(self, design_system):
-        """Generate games page CSS"""
-        return """/* Games Page Styles */
-.games-header {
-    background: var(--gradient-1);
-    padding: 4rem 0 2rem;
-    text-align: center;
-    color: white;
-}
-
-.games-header h1 {
-    font-family: var(--heading-font);
-    font-size: 3rem;
-    margin-bottom: 1rem;
-}
-
-.games-filters {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin: 2rem 0;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    background: var(--secondary-color);
-    color: var(--text-primary);
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover,
-.filter-btn.active {
-    background: var(--accent-color);
-    color: var(--primary-color);
-}
-
-.games-listing {
-    padding: 2rem 0 4rem;
-}
-
-.games-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2rem;
-}
-
-.game-card {
-    background: var(--primary-color);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.game-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}
-
-.game-card img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-.game-info {
-    padding: 1.5rem;
-}
-
-.game-info h3 {
-    font-family: var(--heading-font);
-    color: var(--accent-color);
-    margin-bottom: 0.5rem;
-}
-
-.game-provider {
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-}
-
-.game-stats {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.play-button {
-    width: 100%;
-    text-align: center;
-}"""
-    
-    def generate_game_css(self, design_system):
-        """Generate game detail page CSS"""
-        return """/* Game Detail Page Styles */
-.game-header {
-    background: var(--gradient-1);
-    padding: 4rem 0 2rem;
-    color: white;
-}
-
-.breadcrumb {
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-}
-
-.breadcrumb a {
-    color: rgba(255,255,255,0.8);
-    text-decoration: none;
-}
-
-.breadcrumb a:hover {
-    color: white;
-}
-
-.game-header h1 {
-    font-family: var(--heading-font);
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
-}
-
-.game-provider {
-    font-size: 1.2rem;
-    opacity: 0.8;
-}
-
-.game-play {
-    padding: 2rem 0;
-    text-align: center;
-}
-
-.game-frame {
-    background: var(--surface-color);
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 1rem;
-    min-height: 600px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.game-placeholder {
-    color: var(--text-secondary);
-    font-size: 1.2rem;
-}
-
-.fullscreen-btn {
-    background: var(--secondary-color);
-    color: var(--text-primary);
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.fullscreen-btn:hover {
-    background: var(--accent-color);
-    color: var(--primary-color);
-}
-
-.game-info {
-    padding: 4rem 0;
-    background: var(--surface-color);
-}
-
-.game-details h2 {
-    font-family: var(--heading-font);
-    color: var(--accent-color);
-    margin-bottom: 2rem;
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.info-item {
-    background: var(--primary-color);
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.info-item strong {
-    color: var(--accent-color);
-}
-
-.game-description {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    color: var(--text-secondary);
-}
-
-.similar-games {
-    padding: 4rem 0;
-}
-
-.similar-games h2 {
-    font-family: var(--heading-font);
-    color: var(--accent-color);
-    margin-bottom: 2rem;
-    text-align: center;
-}"""
-    
-    def generate_legal_css(self, design_system):
-        """Generate legal pages CSS"""
-        return """/* Legal Pages Styles */
-.page-header {
-    background: var(--gradient-1);
-    padding: 4rem 0 2rem;
-    text-align: center;
-    color: white;
-}
-
-.page-header h1 {
-    font-family: var(--heading-font);
-    font-size: 3rem;
-}
-
-.legal-content {
-    padding: 4rem 0;
-}
-
-.content-text {
-    max-width: 800px;
-    margin: 0 auto;
-    line-height: 1.8;
-    font-size: 1.1rem;
-    color: var(--text-secondary);
-}
-
-.contact-content {
-    padding: 4rem 0;
-    text-align: center;
-}
-
-.contact-info h2 {
-    font-family: var(--heading-font);
-    color: var(--accent-color);
-    margin-bottom: 2rem;
-}
-
-.contact-info p {
-    font-size: 1.1rem;
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-}"""
-    
-    def generate_javascript_files(self, output_dir):
-        """Generate JavaScript files"""
-        
-        # Base JavaScript
-        base_js = """// Base JavaScript functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Mobile menu toggle
-    const navToggle = document.querySelector('.nav-toggle');
-    const navMenu = document.querySelector('.nav-menu');
-    
-    if (navToggle && navMenu) {
-        navToggle.addEventListener('click', function() {
-            navMenu.classList.toggle('active');
-        });
-    }
-    
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
-});"""
-        
-        # Homepage JavaScript
-        homepage_js = """// Homepage specific functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Game cards hover effects
-    const gameCards = document.querySelectorAll('.game-card');
-    
-    gameCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-10px) scale(1.02)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
-        });
-    });
-    
-    // Scroll animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-    
-    const sections = document.querySelectorAll('section');
-    sections.forEach(section => {
-        section.style.opacity = '0';
-        section.style.transform = 'translateY(20px)';
-        section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(section);
-    });
-});"""
-        
-        # Games page JavaScript
-        games_js = """// Games page functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const gameCards = document.querySelectorAll('.game-card');
-    
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const category = this.dataset.category;
-            
-            // Update active button
-            filterBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Filter games
-            gameCards.forEach(card => {
-                if (category === 'all' || card.dataset.category === category) {
-                    card.style.display = 'block';
-                    card.style.animation = 'fadeIn 0.5s ease';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-    });
-    
-    // Search functionality (if implemented)
-    const searchInput = document.querySelector('#game-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            
-            gameCards.forEach(card => {
-                const gameName = card.querySelector('h3').textContent.toLowerCase();
-                if (gameName.includes(searchTerm)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-    }
-});
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}"""
-        
-        # Game detail JavaScript
-        game_js = """// Game detail page functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const fullscreenBtn = document.querySelector('.fullscreen-btn');
-    const gameFrame = document.querySelector('.game-frame');
-    
-    if (fullscreenBtn && gameFrame) {
-        fullscreenBtn.addEventListener('click', function() {
-            if (gameFrame.requestFullscreen) {
-                gameFrame.requestFullscreen();
-            } else if (gameFrame.mozRequestFullScreen) {
-                gameFrame.mozRequestFullScreen();
-            } else if (gameFrame.webkitRequestFullscreen) {
-                gameFrame.webkitRequestFullscreen();
-            } else if (gameFrame.msRequestFullscreen) {
-                gameFrame.msRequestFullscreen();
-            }
-        });
-    }
-    
-    // Handle fullscreen change
-    document.addEventListener('fullscreenchange', function() {
-        if (document.fullscreenElement) {
-            fullscreenBtn.textContent = '✕ Exit Fullscreen';
-        } else {
-            fullscreenBtn.textContent = '⛶ Fullscreen';
-        }
-    });
-});"""
-        
-        # Write JavaScript files
-        with open(f"{output_dir}/js/base.js", 'w', encoding='utf-8') as f:
-            f.write(base_js)
-        
-        with open(f"{output_dir}/js/homepage.js", 'w', encoding='utf-8') as f:
-            f.write(homepage_js)
-        
-        with open(f"{output_dir}/js/games.js", 'w', encoding='utf-8') as f:
-            f.write(games_js)
-        
-        with open(f"{output_dir}/js/game.js", 'w', encoding='utf-8') as f:
-            f.write(game_js)
