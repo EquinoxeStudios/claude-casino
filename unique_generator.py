@@ -82,8 +82,8 @@ class UniqueGenerator:
                 
                 # Replace class names
                 for original, unique in self.class_mapping.items():
-                    content = re.sub(rf'class="([^"]*\b)?{re.escape(original)}(\b[^"]*)?', 
-                                   lambda m: f'class="{m.group(1) or ""}{unique}{m.group(2) or ""}"', content)
+                    content = re.sub(rf'class="([^"]*\b)?{re.escape(original)}(\b[^"]*)?"', 
+                                   lambda m: f'class="{(m.group(1) or "").strip()}{unique}{(m.group(2) or "").strip()}"', content)
                 
                 # Replace IDs
                 for original, unique in self.id_mapping.items():
@@ -241,7 +241,7 @@ class UniqueGenerator:
         """Slightly vary DOM structure"""
         # Add random empty divs
         if random.random() < 0.3:
-            content = content.replace('<body>', '<body>\\n<div class="layout-helper"></div>')
+            content = content.replace('<body>', '<body>\n<div class="layout-helper"></div>')
         
         # Add random data attributes
         content = re.sub(r'<div class="([^"]*)"', 
@@ -263,10 +263,10 @@ class UniqueGenerator:
             prop_lines = [line.strip() for line in properties.split(';') if line.strip()]
             random.shuffle(prop_lines)
             
-            return f"{selector} {{\\n    {';\\n    '.join(prop_lines)};\\n}}"
+            return f"{selector} {{\n    {';\n    '.join(prop_lines)};\n}}"
         
         # Match CSS rules and randomize properties
-        pattern = r'([^{]+)\\s*{\\s*([^}]+)\\s*}'
+        pattern = r'([^{]+)\s*{\s*([^}]+)\s*}'
         content = re.sub(pattern, randomize_rule, content)
         
         return content
@@ -287,7 +287,7 @@ class UniqueGenerator:
             random_vars.append(f"var {var_name} = {var_value};")
         
         # Add variables at the beginning of the file
-        var_block = "\\n".join(random_vars) + "\\n\\n"
+        var_block = "\n".join(random_vars) + "\n\n"
         content = var_block + content
         
         return content
