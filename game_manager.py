@@ -228,25 +228,50 @@ class GameManager:
             game['local_thumbnail'] = "images/placeholder-game.jpg"
     
     def get_game_iframe_code(self, game, width="100%", height="600px"):
-        """Generate iframe code for game embedding"""
+        """Generate iframe code for game embedding with proper token handling"""
         if game.get('demo_url'):
+            iframe_url = self._build_iframe_url_with_token(game['demo_url'])
+            game_title = game.get('name', 'Casino Game')
+            
             return f"""
+            <!-- Game iframe for {game_title} -->
             <iframe 
-                src="{game['demo_url']}" 
+                id="gameIframe"
+                class="game-iframe"
+                src="{iframe_url}" 
+                title="{game_title}"
                 width="{width}" 
                 height="{height}"
                 frameborder="0"
                 allowfullscreen
                 sandbox="allow-scripts allow-same-origin allow-forms"
-                loading="lazy">
+                loading="lazy"
+                onload="hideLoading()"
+                onerror="showError()">
             </iframe>
             """
         else:
             return f"""
+            <!-- Game not available placeholder -->
             <div class="game-placeholder" style="width:{width}; height:{height};">
                 <p>Game not available for demo</p>
             </div>
             """
+    
+    def _build_iframe_url_with_token(self, base_url):
+        """Build iframe URL with API token if needed"""
+        if not base_url or base_url == 'about:blank':
+            return base_url
+            
+        # Check if it's a SlotsLaunch iframe URL
+        if 'slotslaunch.com/iframe/' in base_url:
+            # Only add token if it's configured and not a placeholder
+            if self.api_token and self.api_token != 'your_slotslaunch_token_here':
+                # Add token parameter
+                separator = '&' if '?' in base_url else '?'
+                return f"{base_url}{separator}token={self.api_token}"
+        
+        return base_url
     
     def get_games_by_category(self, games, category):
         """Filter games by category"""

@@ -203,10 +203,10 @@ class UniqueGenerator:
                 print_colored(f"❌ Error processing {file_path}: {e}", Fore.RED)
     
     def add_random_html_comments(self, content):
-        """Add random HTML comments throughout the content"""
+        """Add random HTML comments throughout the content in safe locations"""
         comments = [
             "<!-- Generated content -->",
-            "<!-- Dynamic section -->",
+            "<!-- Dynamic section -->", 
             "<!-- Custom implementation -->",
             "<!-- Responsive design -->",
             "<!-- Optimized for mobile -->",
@@ -215,13 +215,28 @@ class UniqueGenerator:
             "<!-- Modern standards -->"
         ]
         
-        # Add random comments at various positions
+        # Find safe locations to insert comments (avoid inside tags)
         lines = content.split('\n')
-        for i in range(0, len(lines), random.randint(10, 25)):
-            if i < len(lines):
-                lines.insert(i, f"    {random.choice(comments)}")
+        safe_lines = []
         
-        return '\n'.join(lines)
+        for i, line in enumerate(lines):
+            safe_lines.append(line)
+            
+            # Only add comments after complete lines that are safe locations
+            if (i % random.randint(15, 30) == 0 and 
+                line.strip() and 
+                (line.strip().endswith('</div>') or 
+                 line.strip().endswith('</section>') or
+                 line.strip().endswith('</article>') or
+                 line.strip().endswith('</header>') or
+                 line.strip().endswith('</footer>') or
+                 line.strip().endswith('</nav>'))):
+                
+                # Add comment on next line with proper indentation
+                indent = len(line) - len(line.lstrip())
+                safe_lines.append(' ' * indent + random.choice(comments))
+        
+        return '\n'.join(safe_lines)
     
     def add_random_css_comments(self, content):
         """Add random CSS comments"""

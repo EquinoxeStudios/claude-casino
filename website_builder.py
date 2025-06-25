@@ -12,6 +12,23 @@ class WebsiteBuilder:
         self.env = Environment(loader=FileSystemLoader(template_dir))
         self.env.filters['safe'] = lambda x: x  # Add safe filter for HTML content
     
+    def _build_iframe_url(self, base_url):
+        """Build iframe URL with API token if it's a SlotsLaunch URL"""
+        if not base_url or base_url == 'about:blank':
+            return base_url
+            
+        # Check if it's a SlotsLaunch iframe URL
+        if 'slotslaunch.com/iframe/' in base_url:
+            from config import SLOTSLAUNCH_API_TOKEN
+            
+            # Only add token if it's configured and not a placeholder
+            if SLOTSLAUNCH_API_TOKEN and SLOTSLAUNCH_API_TOKEN != 'your_slotslaunch_token_here':
+                # Add token parameter
+                separator = '&' if '?' in base_url else '?'
+                return f"{base_url}{separator}token={SLOTSLAUNCH_API_TOKEN}"
+        
+        return base_url
+    
     async def build_website(self, output_dir, content, design_system, images, games, deployment_type="noip"):
         """Build complete website"""
         print_colored(f"🏗️ Building website in: {output_dir}", Fore.YELLOW)
@@ -275,7 +292,7 @@ Sitemap: /sitemap.xml"""
             'primary_font': design_system['typography']['heading_font'],
             'game': {
                 'title': game.get('name', 'Unknown Game'),
-                'iframe_url': game.get('demo_url', 'about:blank')
+                'iframe_url': self._build_iframe_url(game.get('demo_url', 'about:blank'))
             },
             'about_url': '/about.html',
             'contact_url': '/contact.html',
