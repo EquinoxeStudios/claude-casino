@@ -120,6 +120,12 @@ class UniqueGenerator:
                 for original, unique in self.function_mapping.items():
                     content = re.sub(rf'\b{re.escape(original)}\s*\(', f'{unique}(', content)
                 
+                # Process inline CSS within <style> tags
+                content = self.process_inline_css(content)
+                
+                # Process inline JavaScript within <script> tags
+                content = self.process_inline_js(content)
+                
                 # Add random comments
                 content = self.add_random_html_comments(content)
                 
@@ -171,6 +177,81 @@ class UniqueGenerator:
                     
             except Exception as e:
                 print_colored(f"❌ Error processing {file_path}: {e}", Fore.RED)
+    
+    def process_inline_css(self, content):
+        """Process inline CSS within <style> tags to randomize selectors"""
+        def process_style_block(match):
+            css_content = match.group(1)
+            
+            # Replace class selectors
+            for original, unique in self.class_mapping.items():
+                # Match class selectors: .classname (with word boundary or special chars)
+                css_content = re.sub(rf'\.{re.escape(original)}(?=[\s\{{:,>+~#\.]|$)', f'.{unique}', css_content)
+            
+            # Replace ID selectors
+            for original, unique in self.id_mapping.items():
+                # Match ID selectors: #idname (with word boundary or special chars)
+                css_content = re.sub(rf'#{re.escape(original)}(?=[\s\{{:,>+~#\.]|$)', f'#{unique}', css_content)
+            
+            return f'<style>{css_content}</style>'
+        
+        # Process all <style> blocks
+        content = re.sub(r'<style[^>]*>(.*?)</style>', process_style_block, content, flags=re.DOTALL)
+        
+        return content
+    
+    def process_inline_js(self, content):
+        """Process inline JavaScript within <script> tags to randomize function names and IDs"""
+        def process_script_block(match):
+            # Check if this is an external script (has src attribute)
+            full_tag = match.group(0)
+            if 'src=' in full_tag:
+                return full_tag  # Don't process external scripts
+            
+            js_content = match.group(1)
+            
+            # Replace function names in JavaScript
+            for original, unique in self.function_mapping.items():
+                # Function declarations: function functionName()
+                js_content = re.sub(rf'\bfunction\s+{re.escape(original)}\b', f'function {unique}', js_content)
+                # Function expressions: var functionName = function
+                js_content = re.sub(rf'\b{re.escape(original)}\s*=\s*function', f'{unique} = function', js_content)
+                # Function calls: functionName(
+                js_content = re.sub(rf'\b{re.escape(original)}\s*\(', f'{unique}(', js_content)
+            
+            # Replace ID references in JavaScript
+            for original, unique in self.id_mapping.items():
+                # getElementById calls
+                js_content = re.sub(rf'getElementById\s*\(\s*[\'\"]{re.escape(original)}[\'\"]\s*\)', 
+                                  f'getElementById(\'{unique}\')', js_content)
+                # querySelector calls with IDs
+                js_content = re.sub(rf'querySelector\s*\(\s*[\'\"]\#{re.escape(original)}[\'\"]\s*\)', 
+                                  f'querySelector(\'#{unique}\')', js_content)
+                # querySelectorAll calls with IDs
+                js_content = re.sub(rf'querySelectorAll\s*\(\s*[\'\"]\#{re.escape(original)}[\'\"]\s*\)', 
+                                  f'querySelectorAll(\'#{unique}\')', js_content)
+            
+            # Replace class references in JavaScript
+            for original, unique in self.class_mapping.items():
+                # querySelector calls with classes
+                js_content = re.sub(rf'querySelector\s*\(\s*[\'\""]\.{re.escape(original)}[\'\"]\s*\)', 
+                                  f'querySelector(\'.{unique}\')', js_content)
+                # querySelectorAll calls with classes
+                js_content = re.sub(rf'querySelectorAll\s*\(\s*[\'\""]\.{re.escape(original)}[\'\"]\s*\)', 
+                                  f'querySelectorAll(\'.{unique}\')', js_content)
+                # getElementsByClassName calls
+                js_content = re.sub(rf'getElementsByClassName\s*\(\s*[\'\"]{re.escape(original)}[\'\"]\s*\)', 
+                                  f'getElementsByClassName(\'{unique}\')', js_content)
+                # classList operations
+                js_content = re.sub(rf'classList\.(add|remove|toggle|contains)\s*\(\s*[\'\"]{re.escape(original)}[\'\"]\s*\)', 
+                                  rf'classList.\1(\'{unique}\')', js_content)
+            
+            return f'<script>{js_content}</script>'
+        
+        # Process all <script> blocks (but not external scripts)
+        content = re.sub(r'<script([^>]*)>(.*?)</script>', process_script_block, content, flags=re.DOTALL)
+        
+        return content
     
     def process_js_files(self, output_dir):
         """Process JavaScript files to randomize function names"""
