@@ -48,12 +48,12 @@ class GameManager:
                     if response.status == 200:
                         data = await response.json()
                         
-                        # Debug: Show full API response
-                        print_colored(f"📋 API Response: {data}", Fore.CYAN)
-                        
-                        games = data.get('games', [])
+                        # SlotsLaunch API returns games in 'data' array, not 'games'
+                        games = data.get('data', [])
+                        total_games = data.get('meta', {}).get('total', len(games))
                         
                         print_colored(f"✅ Fetched {len(games)} games from SlotsLaunch API", Fore.GREEN)
+                        print_colored(f"📊 Total games available: {total_games}", Fore.CYAN)
                         
                         # If no games, check for error messages in response
                         if len(games) == 0:
@@ -92,28 +92,91 @@ class GameManager:
             return self.get_fallback_games()
     
     def process_game_data(self, game):
-        """Process and normalize game data"""
+        """Process and normalize game data from SlotsLaunch API"""
         return {
             'id': game.get('id', ''),
             'name': game.get('name', 'Unknown Game'),
             'slug': game.get('slug', game.get('name', '').lower().replace(' ', '-')),
             'provider': game.get('provider', 'Unknown'),
-            'category': game.get('category', 'slots'),
-            'thumbnail': game.get('thumbnail', ''),
-            'play_url': game.get('play_url', ''),
-            'demo_url': game.get('demo_url', ''),
-            'description': game.get('description', ''),
-            'rtp': game.get('rtp', '96%'),
-            'volatility': game.get('volatility', 'Medium'),
+            'category': game.get('type', 'slots').lower(),  # API uses 'type' field
+            'thumbnail': game.get('thumb', ''),  # API uses 'thumb' field
+            'play_url': game.get('url', ''),  # API uses 'url' field
+            'demo_url': game.get('url', ''),  # Same as play_url for SlotsLaunch
+            'description': game.get('description', '') or f"Play {game.get('name', 'this game')} from {game.get('provider', 'top provider')}",
+            'rtp': f"{game.get('rtp', 96)}%" if game.get('rtp') else '96%',
+            'volatility': self._map_volatility(game.get('volatility', '')),
             'min_bet': game.get('min_bet', '0.01'),
             'max_bet': game.get('max_bet', '100.00'),
-            'paylines': game.get('paylines', '25'),
+            'paylines': game.get('payline', '25'),  # API uses 'payline' field
             'reels': game.get('reels', '5'),
-            'tags': game.get('tags', []),
-            'features': game.get('features', []),
-            'released': game.get('released', '2023'),
-            'mobile_compatible': game.get('mobile_compatible', True)
+            'tags': self._extract_tags(game),
+            'features': self._extract_features(game),
+            'released': game.get('release', '2023'),  # API uses 'release' field
+            'mobile_compatible': True  # Assume all games are mobile compatible
         }
+    
+    def _map_volatility(self, volatility):
+        """Map volatility number to text"""
+        if not volatility:
+            return 'Medium'
+        
+        volatility_str = str(volatility)
+        volatility_map = {
+            '1': 'Very Low',
+            '2': 'Low', 
+            '3': 'Medium',
+            '4': 'High',
+            '5': 'Very High'
+        }
+        return volatility_map.get(volatility_str, 'Medium')
+    
+    def _extract_tags(self, game):
+        """Extract tags from game data"""
+        tags = []
+        
+        # Add provider as tag
+        if game.get('provider'):
+            tags.append(game['provider'].lower())
+        
+        # Add themes as tags
+        if game.get('themes') and isinstance(game['themes'], list):
+            for theme in game['themes']:
+                if isinstance(theme, dict) and 'name' in theme:
+                    tags.append(theme['name'].lower())
+        
+        # Add game type as tag
+        if game.get('type'):
+            tags.append(game['type'].lower())
+            
+        return tags
+    
+    def _extract_features(self, game):
+        """Extract features from game data"""
+        features = []
+        
+        # Check for various feature flags
+        if game.get('megaways'):
+            features.append('Megaways')
+        if game.get('bonus_buy'):
+            features.append('Bonus Buy')
+        if game.get('progressive'):
+            features.append('Progressive Jackpot')
+        if game.get('scatter_pays'):
+            features.append('Scatter Pays')
+        if game.get('tumbling_reels'):
+            features.append('Tumbling Reels')
+        if game.get('increasing_multipliers'):
+            features.append('Increasing Multipliers')
+        if game.get('autoplay'):
+            features.append('Autoplay')
+        if game.get('quickspin'):
+            features.append('Quick Spin')
+            
+        # If no features found, add some generic ones
+        if not features:
+            features = ['Wild Symbols', 'Scatter Symbols']
+            
+        return features
     
     async def download_game_thumbnails(self, games, output_dir):
         """Download game thumbnails concurrently"""
