@@ -166,10 +166,11 @@ Sitemap: /sitemap.xml"""
             f.write(sitemap_content)
         
         # Generate manifest.json
+        site_name = content.get('site_name', 'Casino')
         manifest = {
-            "name": content['site_name'],
-            "short_name": content['site_name'],
-            "description": f"{content['site_name']} - Social Casino Games",
+            "name": site_name,
+            "short_name": site_name,
+            "description": f"{site_name} - Social Casino Games",
             "start_url": "/",
             "display": "standalone",
             "background_color": "#ffffff",
@@ -190,19 +191,20 @@ Sitemap: /sitemap.xml"""
     def render_homepage(self, content, design_system, games):
         """Render homepage HTML using dynamic template generator"""
         # Prepare data structure for the dynamic template
+        site_name = content.get('site_name', 'Casino')
         template_data = {
-            'site_name': content['site_name'],
+            'site_name': site_name,
             'site_tagline': 'Social Casino Games',
             'canonical_url': '/',
             'favicon_path': 'images/favicon.ico',
-            'meta_description': f"Play exciting casino games at {content['site_name']}. Enjoy slots, table games and more!",
+            'meta_description': f"Play exciting casino games at {site_name}. Enjoy slots, table games and more!",
             'design_system': design_system,
             'hero': {
-                'title': content['pages']['homepage']['hero']['headline'],
-                'description': content['pages']['homepage']['hero']['subheadline'],
+                'title': content.get('pages', {}).get('homepage', {}).get('hero', {}).get('headline', f'Welcome to {content.get("site_name", "Casino")}'),
+                'description': content.get('pages', {}).get('homepage', {}).get('hero', {}).get('subheadline', 'Experience the best casino games online!'),
                 'background_image': 'images/hero.jpg',
                 'overlay_opacity': 0.6,
-                'cta_text': content['pages']['homepage']['cta']['button'],
+                'cta_text': content.get('pages', {}).get('homepage', {}).get('cta', {}).get('button', 'Play Now'),
                 'cta_url': '/games.html',
                 'cta_icon': 'fas fa-play'
             },
@@ -219,7 +221,7 @@ Sitemap: /sitemap.xml"""
                 }
             ],
             'about': {
-                'content': content['pages']['homepage']['about']['content'].split('\n')
+                'content': content.get('pages', {}).get('homepage', {}).get('about', {}).get('content', 'Welcome to our casino!').split('\n') if isinstance(content.get('pages', {}).get('homepage', {}).get('about', {}).get('content', ''), str) else ['Welcome to our casino!']
             },
             'footer': {
                 'disclaimer': {
@@ -227,7 +229,7 @@ Sitemap: /sitemap.xml"""
                     'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
                 },
                 'copyright_year': '2024',
-                'domain_name': content['site_name'].lower().replace(' ', '')
+                'domain_name': content.get('site_name', 'Casino').lower().replace(' ', '')
             }
         }
         
@@ -246,11 +248,12 @@ Sitemap: /sitemap.xml"""
     
     def render_games_page(self, content, design_system, games):
         """Render games listing page using dynamic template generator"""
+        site_name = content.get('site_name', 'Casino')
         template_data = {
-            'site_name': content['site_name'],
+            'site_name': site_name,
             'canonical_url': '/games.html',
             'favicon_path': 'images/favicon.ico',
-            'meta_description': f"Browse all casino games at {content['site_name']}. Find your favorite slots and table games.",
+            'meta_description': f"Browse all casino games at {site_name}. Find your favorite slots and table games.",
             'design_system': design_system,
             'total_games': len(games),
             'all_games': [self.format_game_for_template(game) for game in games],
@@ -261,7 +264,7 @@ Sitemap: /sitemap.xml"""
                     'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
                 },
                 'copyright_year': '2024',
-                'domain_name': content['site_name'].lower().replace(' ', '')
+                'domain_name': site_name.lower().replace(' ', '')
             }
         }
         
@@ -272,11 +275,12 @@ Sitemap: /sitemap.xml"""
         # Get similar games (same category, exclude current)
         similar_games = [g for g in all_games if g['category'] == game['category'] and g['id'] != game['id']][:4]
         
+        site_name = content.get('site_name', 'Casino')
         template_data = {
-            'site_name': content['site_name'],
+            'site_name': site_name,
             'canonical_url': f'/games/{game.get("slug", "unknown")}.html',
             'favicon_path': '../images/favicon.ico',
-            'meta_description': f"Play {game.get('name', 'this game')} at {content['site_name']}. {game.get('description', 'Exciting casino game experience!')}",
+            'meta_description': f"Play {game.get('name', 'this game')} at {site_name}. {game.get('description', 'Exciting casino game experience!')}",
             'design_system': design_system,
             'game': {
                 'title': game.get('name', 'Unknown Game'),
@@ -292,7 +296,7 @@ Sitemap: /sitemap.xml"""
                     'text': 'This is a social casino for entertainment purposes only. No real money gambling.'
                 },
                 'copyright_year': '2024',
-                'domain_name': content['site_name'].lower().replace(' ', '')
+                'domain_name': site_name.lower().replace(' ', '')
             }
         }
         
@@ -300,8 +304,8 @@ Sitemap: /sitemap.xml"""
     
     def render_about_page(self, content, design_system):
         """Render about page using simple dynamic generation"""
-        site_name = content['site_name']
-        about_content = content['pages']['about']['content']
+        site_name = content.get('site_name', 'Casino')
+        about_content = content.get('pages', {}).get('about', {}).get('content', f'Welcome to {site_name}! We provide the best casino gaming experience.')
         
         # Simple dynamic about page template
         return f"""<!DOCTYPE html>
@@ -343,14 +347,15 @@ Sitemap: /sitemap.xml"""
         }
         
         page_title = legal_titles.get(page_type, 'Legal Information')
-        legal_content = content['pages']['legal'][page_type]['content']
+        legal_content = content.get('pages', {}).get('legal', {}).get(page_type, {}).get('content', f'This page contains important {page_title.lower()} information.')
         
+        site_name = content.get('site_name', 'Casino')
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page_title} - {content['site_name']}</title>
+    <title>{page_title} - {site_name}</title>
     <link rel="icon" type="image/png" href="images/favicon.ico">
     <style>
         body {{ font-family: Arial, sans-serif; background: #0f0f1e; color: #ffffff; margin: 0; padding: 2rem; }}
@@ -370,8 +375,8 @@ Sitemap: /sitemap.xml"""
     
     def render_contact_page(self, content, design_system):
         """Render contact page using simple dynamic generation"""
-        site_name = content['site_name']
-        contact_info = content['pages']['contact']
+        site_name = content.get('site_name', 'Casino')
+        contact_info = content.get('pages', {}).get('contact', {})
         
         return f"""<!DOCTYPE html>
 <html lang="en">
