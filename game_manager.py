@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import requests
 import time
+import os
 from concurrent.futures import ThreadPoolExecutor
 from config import SLOTSLAUNCH_API_TOKEN, SLOTSLAUNCH_BASE_URL, SLOTSLAUNCH_GAMES_ENDPOINT, RATE_LIMIT_DELAY
 from utils import print_colored, create_directory, sanitize_filename
@@ -186,31 +187,40 @@ class GameManager:
         images_dir = f"{output_dir}/images/games"
         create_directory(images_dir)
         
+        # Create placeholder image if it doesn't exist
+        self.create_placeholder_image(f"{output_dir}/images")
+        
         # Download thumbnails concurrently
+        successful_downloads = 0
         with ThreadPoolExecutor(max_workers=10) as executor:
             tasks = []
             for game in games:
-                if game.get('thumbnail'):
-                    task = executor.submit(self.download_single_thumbnail, game, images_dir)
-                    tasks.append(task)
+                task = executor.submit(self.download_single_thumbnail, game, images_dir)
+                tasks.append(task)
             
-            # Wait for all downloads to complete
+            # Wait for all downloads to complete and count successes
             for task in tasks:
-                task.result()
+                result = task.result()
+                if result:
+                    successful_downloads += 1
         
-        print_colored(f"✅ Downloaded thumbnails for {len(games)} games", Fore.GREEN)
+        print_colored(f"✅ Downloaded {successful_downloads}/{len([g for g in games if g.get('thumbnail')])} game thumbnails", Fore.GREEN)
         return games
     
     def download_single_thumbnail(self, game, images_dir):
         """Download a single game thumbnail"""
         try:
             if not game.get('thumbnail'):
-                return
+                game['local_thumbnail'] = "images/placeholder-game.jpg"
+                return False
                 
             # Add rate limiting
             time.sleep(RATE_LIMIT_DELAY)
             
-            response = requests.get(game['thumbnail'], timeout=30)
+            response = requests.get(game['thumbnail'], timeout=30, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            })
+            
             if response.status_code == 200:
                 # Generate filename
                 filename = f"{sanitize_filename(game['slug'])}.jpg"
@@ -222,10 +232,69 @@ class GameManager:
                 
                 # Update game data with local path
                 game['local_thumbnail'] = f"images/games/{filename}"
+                return True
+            else:
+                print_colored(f"⚠️ Failed to download thumbnail for {game.get('name', 'Unknown')}: HTTP {response.status_code}", Fore.YELLOW)
+                game['local_thumbnail'] = "images/placeholder-game.jpg"
+                return False
                 
         except Exception as e:
             print_colored(f"❌ Error downloading thumbnail for {game.get('name', 'Unknown')}: {e}", Fore.RED)
             game['local_thumbnail'] = "images/placeholder-game.jpg"
+            return False
+    
+    def create_placeholder_image(self, images_dir):
+        """Create a placeholder image for games without thumbnails"""
+        from PIL import Image, ImageDraw, ImageFont
+        
+        try:
+            placeholder_path = f"{images_dir}/placeholder-game.jpg"
+            
+            # Skip if placeholder already exists
+            if os.path.exists(placeholder_path):
+                return
+            
+            # Create a simple placeholder image
+            width, height = 300, 200
+            image = Image.new('RGB', (width, height), color='#1a1a2e')
+            draw = ImageDraw.Draw(image)
+            
+            # Draw gradient background
+            for y in range(height):
+                r = int(26 + (40 - 26) * y / height)
+                g = int(26 + (46 - 26) * y / height) 
+                b = int(46 + (78 - 46) * y / height)
+                draw.line([(0, y), (width, y)], fill=(r, g, b))
+            
+            # Add text
+            try:
+                # Try to use a default font
+                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 20)
+            except:
+                # Fallback to default font
+                font = ImageFont.load_default()
+            
+            text = "CASINO GAME"
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+            
+            x = (width - text_width) // 2
+            y = (height - text_height) // 2
+            
+            # Draw text with shadow
+            draw.text((x + 2, y + 2), text, fill='#000000', font=font)
+            draw.text((x, y), text, fill='#ffffff', font=font)
+            
+            # Add border
+            draw.rectangle([0, 0, width-1, height-1], outline='#333333', width=2)
+            
+            # Save placeholder
+            image.save(placeholder_path, 'JPEG', quality=85)
+            print_colored(f"✅ Created placeholder image: {placeholder_path}", Fore.GREEN)
+            
+        except Exception as e:
+            print_colored(f"❌ Error creating placeholder image: {e}", Fore.RED)
     
     def get_game_iframe_code(self, game, width="100%", height="600px"):
         """Generate iframe code for game embedding with proper token handling"""

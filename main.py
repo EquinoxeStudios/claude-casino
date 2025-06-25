@@ -70,13 +70,16 @@ class CasinoWebsiteGenerator:
             print_colored("🎮 Fetching casino games...", Fore.YELLOW)
             games = await self.game_manager.fetch_games(domain_name)
             
+            # Step 5.5: Download game thumbnails for offline storage
+            output_dir = f"output/{domain_name.replace('.', '_')}"
+            await self.game_manager.download_game_thumbnails(games, output_dir)
+            
             # Step 6: Generate all content
             print_colored("📝 Generating website content...", Fore.YELLOW)
             content = await self.ai_generator.generate_all_content(domain_name, chosen_theme, games)
             
             # Step 7: Build website
             print_colored("🏗️ Building website...", Fore.YELLOW)
-            output_dir = f"output/{domain_name.replace('.', '_')}"
             await self.website_builder.build_website(
                 output_dir, content, design_system, images, games, deployment_type
             )

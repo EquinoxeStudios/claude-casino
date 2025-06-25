@@ -49,7 +49,7 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
 
     <!-- Main Wrapper -->
-    <main class="main-wrapper" id="mainWrapper">
+    <main class="main-wrapper fade-in" id="mainWrapper">
 
         <!-- Games Header -->
         <section class="games-header">
@@ -59,10 +59,10 @@
         </section>
 
         <!-- Games Grid -->
-        <section class="games-section">
+        <section class="games-section fade-in">
             <div class="games-grid">
                 {% for game in all_games %}
-                <div class="game-card" data-game-slug="{{ game.slug | default(game.url.split('/')[-1] if '/' in game.url else game.url) }}">
+                <div class="game-card scale-in" data-game-slug="{{ game.slug | default(game.url.split('/')[-1] if '/' in game.url else game.url) }}">
                     <img src="{{ path_prefix }}{{ game.image }}"
                          alt="{{ game.title }}"
                          class="game-thumbnail"
@@ -76,6 +76,7 @@
                                class="game-cta"
                                data-game-title="{{ game.title }}"
                                data-game-provider="{{ game.provider | default('Unknown') }}">
+                               <i class="fas fa-play btn-icon"></i>
                                {{ game.cta_text | default('Play Now') }}
                             </a>
                         </div>

@@ -49,7 +49,7 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
 
     <!-- Main Wrapper -->
-    <main class="main-wrapper" id="mainWrapper">
+    <main class="main-wrapper fade-in" id="mainWrapper">
 
         <!-- Hero Section -->
         <section class="hero" style="background: linear-gradient(rgba(0, 0, 0, {{ hero.overlay_opacity | default(0.6) }}), rgba(0, 0, 0, {{ hero.overlay_opacity | default(0.4) }})), url('./{{ hero.background_image }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
@@ -57,17 +57,17 @@
                 <h1>{{ hero.title }}</h1>
                 <p>{{ hero.description }}</p>
                 <div class="hero-buttons">
-                    <a href="{{ hero.cta_url }}" class="btn btn-primary btn-large">
-                        <i class="{{ hero.cta_icon | default('fas fa-play') }}"></i> {{ hero.cta_text }}
+                    <a href="{{ hero.cta_url }}" class="btn btn-primary btn-large btn-pulse floating-element">
+                        <i class="{{ hero.cta_icon | default('fas fa-play') }} btn-icon"></i> {{ hero.cta_text }}
                     </a>
                 </div>
             </div>
         </section>
 
         <!-- Dynamic Content Sections -->
-        <section class="content-section">
+        <section class="content-section fade-in">
             <div class="section-header">
-                <h2 class="section-title">Featured Games</h2>
+                <h2 class="section-title floating-element">Featured Games</h2>
                 <p class="section-subtitle">{{ content_sections[0].subtitle }}</p>
             </div>
             <div class="cards-container">
@@ -76,7 +76,7 @@
                 </button>
                 <div class="cards-slider" id="section0Slider">
                     {% for item in content_sections[0]["items"] %}
-                    <div class="card" data-game-slug="{{ item.slug | default(item.url.split('/')[-1] if '/' in item.url else item.url) }}">
+                    <div class="card scale-in" data-game-slug="{{ item.slug | default(item.url.split('/')[-1] if '/' in item.url else item.url) }}">
                         <img src="{{ item.image }}" 
                              alt="{{ item.title }}" 
                              class="card-thumbnail" 
@@ -91,6 +91,7 @@
                                    data-game-title="{{ item.title }}"
                                    data-game-provider="{{ item.provider | default('Unknown') }}"
                                    onclick="trackGameClick('{{ item.title }}', '{{ item.url }}', '{{ item.provider | default('Unknown') }}')">
+                                   <i class="fas fa-play btn-icon"></i>
                                    {{ item.cta_text | default('Play Now') }}
                                 </a>
                             </div>
@@ -105,9 +106,9 @@
             <div class="slider-dots" id="section0Dots"></div>
         </section>
 
-        <section class="content-section">
+        <section class="content-section fade-in">
             <div class="section-header">
-                <h2 class="section-title">New Arrivals</h2>
+                <h2 class="section-title floating-element">New Arrivals</h2>
                 <p class="section-subtitle">{{ content_sections[1].subtitle }}</p>
             </div>
             <div class="cards-container">
@@ -116,7 +117,7 @@
                 </button>
                 <div class="cards-slider" id="section1Slider">
                     {% for item in content_sections[1]["items"] %}
-                    <div class="card" data-game-slug="{{ item.slug | default(item.url.split('/')[-1] if '/' in item.url else item.url) }}">
+                    <div class="card scale-in" data-game-slug="{{ item.slug | default(item.url.split('/')[-1] if '/' in item.url else item.url) }}">
                         <img src="{{ item.image }}" 
                              alt="{{ item.title }}" 
                              class="card-thumbnail" 
@@ -131,6 +132,7 @@
                                    data-game-title="{{ item.title }}"
                                    data-game-provider="{{ item.provider | default('Unknown') }}"
                                    onclick="trackGameClick('{{ item.title }}', '{{ item.url }}', '{{ item.provider | default('Unknown') }}')">
+                                   <i class="fas fa-play btn-icon"></i>
                                    {{ item.cta_text | default('Play Now') }}
                                 </a>
                             </div>
