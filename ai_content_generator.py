@@ -1,4 +1,5 @@
 import asyncio
+import json
 import random
 from openai import OpenAI
 from config import OPENAI_API_KEY, GOOGLE_FONTS
@@ -37,7 +38,6 @@ class AIContentGenerator:
                 temperature=0.8
             )
             
-            import json
             themes = json.loads(response.choices[0].message.content)
             return themes
             
@@ -113,7 +113,6 @@ class AIContentGenerator:
                 temperature=0.7
             )
             
-            import json
             design_system = json.loads(response.choices[0].message.content)
             return design_system
             
@@ -259,7 +258,6 @@ class AIContentGenerator:
                 temperature=0.7
             )
             
-            import json
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:
@@ -318,7 +316,6 @@ class AIContentGenerator:
                 temperature=0.7
             )
             
-            import json
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:

@@ -3,6 +3,7 @@ import aiohttp
 import requests
 import time
 import os
+import random
 from concurrent.futures import ThreadPoolExecutor
 from config import SLOTSLAUNCH_API_TOKEN, SLOTSLAUNCH_BASE_URL, SLOTSLAUNCH_GAMES_ENDPOINT, RATE_LIMIT_DELAY
 from utils import print_colored, create_directory, sanitize_filename
@@ -352,7 +353,6 @@ class GameManager:
     
     def get_featured_games(self, games, count=6):
         """Get featured games (random selection)"""
-        import random
         if len(games) <= count:
             return games
         return random.sample(games, count)

@@ -221,7 +221,7 @@ Sitemap: /sitemap.xml"""
                 }
             ],
             'about': {
-                'content': content.get('pages', {}).get('homepage', {}).get('about', {}).get('content', 'Welcome to our casino!').split('\n') if isinstance(content.get('pages', {}).get('homepage', {}).get('about', {}).get('content', ''), str) else ['Welcome to our casino!']
+                'content': self._get_about_content(content)
             },
             'footer': {
                 'disclaimer': {
@@ -234,6 +234,16 @@ Sitemap: /sitemap.xml"""
         }
         
         return self.template_generator.generate_homepage_template(template_data)
+    
+    def _get_about_content(self, content):
+        """Safely extract about content"""
+        try:
+            about_content = content.get('pages', {}).get('homepage', {}).get('about', {}).get('content', 'Welcome to our casino!')
+            if isinstance(about_content, str):
+                return about_content.split('\n')
+            return ['Welcome to our casino!']
+        except (AttributeError, TypeError):
+            return ['Welcome to our casino!']
     
     def format_game_for_template(self, game):
         """Format game data for template usage"""

@@ -68,7 +68,8 @@ class UniqueGenerator:
         common_functions = [
             'toggleSidebar', 'toggleMobileSidebar', 'closeMobileSidebar', 'slideCards',
             'handleImageError', 'handleImageLoad', 'trackGameClick', 'hideLoading',
-            'showError', 'toggleFullscreen', 'initializeSliderDots'
+            'showError', 'toggleFullscreen', 'initializeSliderDots', 'toggleHamburgerMenu',
+            'toggleFabMenu', 'changeSlide', 'currentSlide'
         ]
         
         # Generate unique class names

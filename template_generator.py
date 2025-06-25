@@ -103,7 +103,7 @@ class DynamicTemplateGenerator:
         html_attrs = self._generate_html_attributes()
         
         template = f"""{doctype}
-<html{html_attrs}>
+<html{html_attrs} lang="en">
 <head>
 {meta_tags}
 {head_section}
@@ -112,7 +112,11 @@ class DynamicTemplateGenerator:
     <!-- Randomized comment: {self._generate_random_comment()} -->
     {navigation}
     
-    <main class="main-wrapper" id="mainWrapper">
+    <main class="main-wrapper" id="main-content" role="main" aria-label="Main content">
+        <div class="accessibility-info sr-only">
+            <h1>Casino Website Content</h1>
+            <p>This page contains casino games and entertainment content. Use Tab to navigate through interactive elements.</p>
+        </div>
         {hero_section}
         {content_sections}
     </main>
@@ -242,30 +246,46 @@ class DynamicTemplateGenerator:
     def _get_framework_css(self) -> str:
         """Get CSS framework CDN links based on selected framework"""
         if self.config.framework == Framework.TAILWIND:
-            return '''    <script src="https://cdn.tailwindcss.com"></script>
+            # Tailwind CSS with custom configuration
+            colors = self._get_theme_colors()
+            return f'''    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'casino-primary': '#1a1a2e',
-                        'casino-accent': '#7c77c6',
-                        'casino-background': '#0f0f1e',
-                        'casino-surface': '#1e1e2e'
-                    },
-                    fontFamily: {
-                        'casino': ['Inter', 'system-ui', 'sans-serif']
-                    }
-                }
-            }
-        }
+        tailwind.config = {{
+            theme: {{
+                extend: {{
+                    colors: {{
+                        'primary': '{colors["primary"]}',
+                        'secondary': '{colors["secondary"]}',
+                        'accent': '{colors["accent"]}',
+                        'background': '{colors["background"]}',
+                        'surface': '{colors["surface"]}'
+                    }},
+                    fontFamily: {{
+                        'heading': ['Poppins', 'system-ui', 'sans-serif'],
+                        'body': ['Inter', 'system-ui', 'sans-serif']
+                    }},
+                    animation: {{
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'slideIn': 'slideIn 0.3s ease-out'
+                    }}
+                }}
+            }}
+        }}
     </script>'''
         elif self.config.framework == Framework.BOOTSTRAP:
-            return '    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">'
+            # Bootstrap 5 with custom CSS variables
+            return '''    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>'''
         elif self.config.framework == Framework.BULMA:
-            return '    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">'
+            # Bulma CSS framework
+            return '''    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">'''
+        elif self.config.framework == Framework.MODERN_CSS:
+            # Modern CSS with container queries and advanced features
+            return '''    <!-- Modern CSS with container queries and advanced features -->'''
         else:
-            return '    <!-- Vanilla CSS Framework -->'
+            # Vanilla CSS with custom grid system
+            return '''    <!-- Vanilla CSS with custom design system -->'''
     
     def _generate_font_imports(self, content_data: Dict[str, Any]) -> str:
         """Generate font imports with random variation"""
@@ -312,6 +332,62 @@ class DynamicTemplateGenerator:
         
         /* Responsive Styles */
 {responsive_styles}"""
+    
+    def _get_theme_colors(self) -> Dict[str, str]:
+        """Get theme colors based on color scheme"""
+        color_schemes = {
+            "dark_gradient": {
+                "primary": "#1a1a2e",
+                "secondary": "#16213e", 
+                "accent": "#7c77c6",
+                "background": "#0f0f1e",
+                "surface": "#1e1e2e"
+            },
+            "neon_cyber": {
+                "primary": "#00ffff",
+                "secondary": "#ff00ff",
+                "accent": "#ffff00", 
+                "background": "#0a0a0a",
+                "surface": "#1a1a1a"
+            },
+            "warm_casino": {
+                "primary": "#d4af37",
+                "secondary": "#8b0000",
+                "accent": "#ff6b35",
+                "background": "#1a0e0e",
+                "surface": "#2a1a1a"
+            },
+            "cool_blue": {
+                "primary": "#4a90e2",
+                "secondary": "#357abd",
+                "accent": "#5dade2",
+                "background": "#0e1a2a",
+                "surface": "#1a2a3a"
+            },
+            "purple_gold": {
+                "primary": "#6a4c93",
+                "secondary": "#9b5de5",
+                "accent": "#f1c40f",
+                "background": "#1a0e2a",
+                "surface": "#2a1a3a"
+            },
+            "red_black": {
+                "primary": "#e74c3c",
+                "secondary": "#c0392b",
+                "accent": "#f39c12",
+                "background": "#0e0e0e",
+                "surface": "#1e1e1e"
+            },
+            "green_emerald": {
+                "primary": "#00b894",
+                "secondary": "#00a085",
+                "accent": "#fdcb6e",
+                "background": "#0e1a0e", 
+                "surface": "#1a2a1a"
+            }
+        }
+        
+        return color_schemes.get(self.config.color_scheme, color_schemes["dark_gradient"])
     
     def _generate_css_variables(self, content_data: Dict[str, Any]) -> str:
         """Generate CSS custom properties"""
@@ -368,33 +444,59 @@ class DynamicTemplateGenerator:
             return self._generate_tab_navigation(site_name, nav_items)
     
     def _generate_sidebar_navigation(self, site_name: str, nav_items: List[Tuple[str, str, str]]) -> str:
-        """Generate sidebar navigation with anti-fingerprinting compatible class names"""
-        nav_html = f"""    <!-- Navigation: Anti-fingerprinting compatible -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">{site_name}</div>
-        </div>
-        <div class="sidebar-nav">"""
+        """Generate accessible sidebar navigation with anti-fingerprinting compatible class names"""
+        # Skip link for accessibility
+        skip_link = """    <a href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>"""
         
-        for name, url, icon in nav_items:
+        nav_html = f"""{skip_link}
+    <!-- Navigation: Anti-fingerprinting compatible -->
+    <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-header">
+            <div class="logo" role="banner">
+                <h1>{site_name}</h1>
+            </div>
+        </div>
+        <div class="sidebar-nav" role="menubar">"""
+        
+        for i, (name, url, icon) in enumerate(nav_items):
             active_class = " active" if name == "Home" else ""
+            is_current = 'aria-current="page"' if name == "Home" else ''
             nav_html += f"""
-            <a href="{url}" class="nav-item{active_class}">
-                <i class="{icon}"></i> <span>{name}</span>
+            <a href="{url}" 
+               class="nav-item{active_class}" 
+               role="menuitem" 
+               tabindex="{i+2}"
+               {is_current}
+               aria-describedby="nav-{name.lower()}-desc">
+                <i class="{icon}" aria-hidden="true"></i> 
+                <span>{name}</span>
+                <span id="nav-{name.lower()}-desc" class="sr-only">Navigate to {name} page</span>
             </a>"""
         
         nav_html += f"""
         </div>
-        <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
-            <i class="fas fa-chevron-left"></i>
+        <button class="sidebar-toggle" 
+                onclick="toggleSidebar()" 
+                aria-label="Toggle sidebar navigation" 
+                aria-expanded="true"
+                aria-controls="sidebar">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
         </button>
     </nav>
     
-    <button class="mobile-sidebar-toggle" onclick="toggleMobileSidebar()" id="mobileSidebarToggle" aria-label="Open menu">
-        <i class="fas fa-bars"></i>
+    <button class="mobile-sidebar-toggle" 
+            onclick="toggleMobileSidebar()" 
+            id="mobileSidebarToggle" 
+            aria-label="Open mobile navigation menu"
+            aria-expanded="false"
+            aria-controls="sidebar">
+        <i class="fas fa-bars" aria-hidden="true"></i>
     </button>
     
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>"""
+    <div class="sidebar-overlay" 
+         id="sidebarOverlay" 
+         onclick="closeMobileSidebar()" 
+         aria-hidden="true"></div>"""
         
         return nav_html
     
@@ -431,12 +533,133 @@ class DynamicTemplateGenerator:
             </div>
         </section>"""
     
+    def _generate_split_hero(self, hero_data: Dict[str, Any]) -> str:
+        """Generate split hero section"""
+        return f"""        <section class="hero hero-split">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <h1 class="hero-title">{hero_data.get('title', 'Welcome to Casino')}</h1>
+                    <p class="hero-description">{hero_data.get('description', 'Experience the best casino games')}</p>
+                    <div class="hero-buttons">
+                        <a href="{hero_data.get('cta_url', '/games.html')}" class="btn btn-primary btn-large">
+                            <i class="{hero_data.get('cta_icon', 'fas fa-play')}"></i> {hero_data.get('cta_text', 'Play Now')}
+                        </a>
+                        <a href="/about.html" class="btn btn-outline">Learn More</a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="{hero_data.get('image', 'images/hero-split.jpg')}" alt="Casino Games" loading="lazy">
+                </div>
+            </div>
+        </section>"""
+    
+    def _generate_video_hero(self, hero_data: Dict[str, Any]) -> str:
+        """Generate video background hero"""
+        return f"""        <section class="hero hero-video">
+            <video class="hero-video" autoplay muted loop>
+                <source src="{hero_data.get('video', 'videos/hero.mp4')}" type="video/mp4">
+                <img src="{hero_data.get('fallback_image', 'images/hero.jpg')}" alt="Casino">
+            </video>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 class="hero-title">{hero_data.get('title', 'Ultimate Casino Experience')}</h1>
+                <p class="hero-description">{hero_data.get('description', 'Immerse yourself in premium gaming')}</p>
+                <div class="hero-buttons">
+                    <a href="{hero_data.get('cta_url', '/games.html')}" class="btn btn-primary btn-large">
+                        <i class="{hero_data.get('cta_icon', 'fas fa-play')}"></i> {hero_data.get('cta_text', 'Start Playing')}
+                    </a>
+                </div>
+            </div>
+        </section>"""
+    
+    def _generate_gradient_hero(self, hero_data: Dict[str, Any]) -> str:
+        """Generate animated gradient hero"""
+        gradient_colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe']
+        return f"""        <section class="hero hero-gradient">
+            <div class="gradient-bg"></div>
+            <div class="hero-content">
+                <h1 class="hero-title gradient-text">{hero_data.get('title', 'Next Level Gaming')}</h1>
+                <p class="hero-description">{hero_data.get('description', 'Experience casino games like never before')}</p>
+                <div class="hero-buttons">
+                    <a href="{hero_data.get('cta_url', '/games.html')}" class="btn btn-gradient btn-large">
+                        <i class="{hero_data.get('cta_icon', 'fas fa-rocket')}"></i> {hero_data.get('cta_text', 'Launch Games')}
+                    </a>
+                </div>
+            </div>
+        </section>"""
+    
+    def _generate_particles_hero(self, hero_data: Dict[str, Any]) -> str:
+        """Generate particle effect hero"""
+        return f"""        <section class="hero hero-particles">
+            <div id="particles-js"></div>
+            <div class="hero-content">
+                <h1 class="hero-title">{hero_data.get('title', 'Cosmic Casino')}</h1>
+                <p class="hero-description">{hero_data.get('description', 'Gaming in a galaxy far, far away')}</p>
+                <div class="hero-buttons">
+                    <a href="{hero_data.get('cta_url', '/games.html')}" class="btn btn-primary btn-large pulse">
+                        <i class="{hero_data.get('cta_icon', 'fas fa-star')}"></i> {hero_data.get('cta_text', 'Enter Universe')}
+                    </a>
+                </div>
+            </div>
+        </section>"""
+    
+    def _generate_carousel_hero(self, hero_data: Dict[str, Any]) -> str:
+        """Generate carousel hero section"""
+        slides = hero_data.get('slides', [{'title': 'Welcome', 'description': 'Play amazing games', 'image': 'images/hero1.jpg'}])
+        carousel_html = f"""        <section class="hero hero-carousel">
+            <div class="carousel-container">"""
+        
+        for i, slide in enumerate(slides[:3]):  # Limit to 3 slides
+            active_class = "active" if i == 0 else ""
+            carousel_html += f"""
+                <div class="carousel-slide {active_class}" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.3)), url('{slide.get('image', 'images/hero.jpg')}'); background-size: cover;">
+                    <div class="hero-content">
+                        <h1 class="hero-title">{slide.get('title', 'Casino Games')}</h1>
+                        <p class="hero-description">{slide.get('description', 'Play and win big')}</p>
+                        <div class="hero-buttons">
+                            <a href="{slide.get('cta_url', '/games.html')}" class="btn btn-primary btn-large">
+                                <i class="{slide.get('cta_icon', 'fas fa-play')}"></i> {slide.get('cta_text', 'Play Now')}
+                            </a>
+                        </div>
+                    </div>
+                </div>"""
+        
+        carousel_html += f"""
+            </div>
+            <div class="carousel-nav">
+                <button class="carousel-prev" onclick="changeSlide(-1)">❮</button>
+                <button class="carousel-next" onclick="changeSlide(1)">❯</button>
+            </div>
+            <div class="carousel-dots">
+                {' '.join([f'<span class="dot {"active" if i == 0 else ""}" onclick="currentSlide({i+1})"></span>' for i in range(len(slides[:3]))])}
+            </div>
+        </section>"""
+        
+        return carousel_html
+    
+    def _generate_minimalist_hero(self, hero_data: Dict[str, Any]) -> str:
+        """Generate minimalist hero section"""
+        return f"""        <section class="hero hero-minimalist">
+            <div class="hero-content">
+                <h1 class="hero-title minimal">{hero_data.get('title', 'Pure Gaming')}</h1>
+                <p class="hero-description minimal">{hero_data.get('description', 'Simple. Clean. Fun.')}</p>
+                <div class="hero-buttons minimal">
+                    <a href="{hero_data.get('cta_url', '/games.html')}" class="btn btn-minimal">
+                        {hero_data.get('cta_text', 'Play')}
+                    </a>
+                </div>
+            </div>
+        </section>"""
+    
     def _generate_content_sections(self, content_data: Dict[str, Any]) -> str:
         """Generate content sections with anti-fingerprinting compatible classes"""
-        sections = ""
         content_sections = content_data.get('content_sections', [])
         
+        sections_html = []
         for i, section in enumerate(content_sections):
+            items = section.get('items', [])
+            cards_html = ''.join(f"\n                    {self._generate_game_card(item)}" for item in items)
+            
             section_html = f"""        
         <section class="content-section">
             <div class="section-header">
@@ -444,21 +667,14 @@ class DynamicTemplateGenerator:
                 <p class="section-subtitle">{section.get('subtitle', '')}</p>
             </div>
             <div class="cards-container">
-                <div class="cards-slider" id="section{i}Slider">"""
-            
-            for item in section.get('items', []):
-                card_html = self._generate_game_card(item)
-                section_html += f"""
-                    {card_html}"""
-            
-            section_html += f"""
+                <div class="cards-slider" id="section{i}Slider">{cards_html}
                 </div>
             </div>
         </section>"""
             
-            sections += section_html
+            sections_html.append(section_html)
         
-        return sections
+        return ''.join(sections_html)
     
     def _generate_game_card(self, item: Dict[str, Any]) -> str:
         """Generate game card based on style configuration"""
@@ -498,6 +714,129 @@ class DynamicTemplateGenerator:
                                    {item.get('cta_text', 'Play Now')}
                                 </a>
                             </div>
+                        </div>
+                    </div>"""
+    
+    def _generate_flip_card(self, item: Dict[str, Any]) -> str:
+        """Generate flip card with anti-fingerprinting compatible classes"""
+        return f"""                    <div class="card card-flip" data-game-slug="{item.get('slug', 'unknown')}">
+                        <div class="card-inner">
+                            <div class="card-front">
+                                <img src="{item.get('image', 'images/placeholder.jpg')}" 
+                                     alt="{item.get('title', 'Game')}" 
+                                     class="card-thumbnail"
+                                     loading="lazy"
+                                     onerror="handleImageError(this)"
+                                     onload="handleImageLoad(this)">
+                            </div>
+                            <div class="card-back">
+                                <div class="card-info">
+                                    <h3 class="card-title">{item.get('title', 'Game')}</h3>
+                                    <p class="card-description">{item.get('description', 'Amazing casino game')}</p>
+                                    <a href="{item.get('url', '#')}" class="card-cta">
+                                        <i class="fas fa-play"></i> {item.get('cta_text', 'Play Now')}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>"""
+    
+    def _generate_slide_up_card(self, item: Dict[str, Any]) -> str:
+        """Generate slide up card with anti-fingerprinting compatible classes"""
+        return f"""                    <div class="card card-slide-up" data-game-slug="{item.get('slug', 'unknown')}">
+                        <img src="{item.get('image', 'images/placeholder.jpg')}" 
+                             alt="{item.get('title', 'Game')}" 
+                             class="card-thumbnail"
+                             loading="lazy"
+                             onerror="handleImageError(this)"
+                             onload="handleImageLoad(this)">
+                        <div class="card-info slide-panel">
+                            <h3 class="card-title">{item.get('title', 'Game')}</h3>
+                            <p class="card-provider">{item.get('provider', 'Provider')}</p>
+                            <a href="{item.get('url', '#')}" class="card-cta">
+                                <i class="fas fa-gamepad"></i> {item.get('cta_text', 'Play')}
+                            </a>
+                        </div>
+                    </div>"""
+    
+    def _generate_glassmorphism_card(self, item: Dict[str, Any]) -> str:
+        """Generate glassmorphism card with anti-fingerprinting compatible classes"""
+        return f"""                    <div class="card card-glass" data-game-slug="{item.get('slug', 'unknown')}">
+                        <div class="glass-bg"></div>
+                        <img src="{item.get('image', 'images/placeholder.jpg')}" 
+                             alt="{item.get('title', 'Game')}" 
+                             class="card-thumbnail"
+                             loading="lazy"
+                             onerror="handleImageError(this)"
+                             onload="handleImageLoad(this)">
+                        <div class="card-content">
+                            <h3 class="card-title glass-text">{item.get('title', 'Game')}</h3>
+                            <div class="card-actions">
+                                <a href="{item.get('url', '#')}" class="card-cta glass-btn">
+                                    <i class="fas fa-play"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>"""
+    
+    def _generate_neumorphism_card(self, item: Dict[str, Any]) -> str:
+        """Generate neumorphism card with anti-fingerprinting compatible classes"""
+        return f"""                    <div class="card card-neomorphism" data-game-slug="{item.get('slug', 'unknown')}">
+                        <div class="neomorphism-inner">
+                            <img src="{item.get('image', 'images/placeholder.jpg')}" 
+                                 alt="{item.get('title', 'Game')}" 
+                                 class="card-thumbnail neomorphism-image"
+                                 loading="lazy"
+                                 onerror="handleImageError(this)"
+                                 onload="handleImageLoad(this)">
+                            <div class="card-info">
+                                <h3 class="card-title neomorphism-title">{item.get('title', 'Game')}</h3>
+                                <a href="{item.get('url', '#')}" class="card-cta neomorphism-btn">
+                                    {item.get('cta_text', 'Play')}
+                                </a>
+                            </div>
+                        </div>
+                    </div>"""
+    
+    def _generate_gradient_border_card(self, item: Dict[str, Any]) -> str:
+        """Generate gradient border card with anti-fingerprinting compatible classes"""
+        return f"""                    <div class="card card-gradient-border" data-game-slug="{item.get('slug', 'unknown')}">
+                        <div class="gradient-border"></div>
+                        <div class="card-content">
+                            <img src="{item.get('image', 'images/placeholder.jpg')}" 
+                                 alt="{item.get('title', 'Game')}" 
+                                 class="card-thumbnail"
+                                 loading="lazy"
+                                 onerror="handleImageError(this)"
+                                 onload="handleImageLoad(this)">
+                            <div class="card-overlay gradient-overlay">
+                                <h3 class="card-title">{item.get('title', 'Game')}</h3>
+                                <a href="{item.get('url', '#')}" class="card-cta gradient-cta">
+                                    <i class="fas fa-star"></i> {item.get('cta_text', 'Play Now')}
+                                </a>
+                            </div>
+                        </div>
+                    </div>"""
+    
+    def _generate_zoom_hover_card(self, item: Dict[str, Any]) -> str:
+        """Generate zoom hover card with anti-fingerprinting compatible classes"""
+        return f"""                    <div class="card card-zoom" data-game-slug="{item.get('slug', 'unknown')}">
+                        <div class="card-image-container">
+                            <img src="{item.get('image', 'images/placeholder.jpg')}" 
+                                 alt="{item.get('title', 'Game')}" 
+                                 class="card-thumbnail zoom-image"
+                                 loading="lazy"
+                                 onerror="handleImageError(this)"
+                                 onload="handleImageLoad(this)">
+                            <div class="zoom-overlay">
+                                <a href="{item.get('url', '#')}" class="zoom-cta">
+                                    <i class="fas fa-search-plus"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">{item.get('title', 'Game')}</h3>
+                            <p class="card-meta">{item.get('provider', 'Provider')} • {item.get('category', 'Casino')}</p>
                         </div>
                     </div>"""
     
@@ -589,6 +928,68 @@ class DynamicTemplateGenerator:
                     btn.className = 'fas fa-expand';
                 }});
             }}
+        }}
+
+        // Additional navigation functions for different navigation patterns
+        function toggleHamburgerMenu() {{
+            const menu = document.querySelector('.nav-menu');
+            const toggle = document.querySelector('.hamburger-toggle');
+            
+            if (menu && toggle) {{
+                menu.classList.toggle('active');
+                const isExpanded = menu.classList.contains('active');
+                toggle.setAttribute('aria-expanded', isExpanded);
+                
+                // Change icon
+                const icon = toggle.querySelector('i');
+                if (icon) {{
+                    icon.className = isExpanded ? 'fas fa-times' : 'fas fa-bars';
+                }}
+            }}
+        }}
+
+        function toggleFabMenu() {{
+            const fabMenu = document.querySelector('.fab-menu');
+            const fabMain = document.querySelector('.fab-main');
+            
+            if (fabMenu && fabMain) {{
+                fabMenu.classList.toggle('active');
+                const isExpanded = fabMenu.classList.contains('active');
+                fabMain.setAttribute('aria-expanded', isExpanded);
+                
+                // Rotate main button
+                const icon = fabMain.querySelector('i');
+                if (icon) {{
+                    icon.style.transform = isExpanded ? 'rotate(45deg)' : 'rotate(0deg)';
+                }}
+            }}
+        }}
+
+        function changeSlide(direction) {{
+            const slides = document.querySelectorAll('.carousel-slide');
+            const dots = document.querySelectorAll('.dot');
+            let activeIndex = Array.from(slides).findIndex(slide => slide.classList.contains('active'));
+            
+            slides[activeIndex].classList.remove('active');
+            dots[activeIndex].classList.remove('active');
+            
+            activeIndex += direction;
+            if (activeIndex >= slides.length) activeIndex = 0;
+            if (activeIndex < 0) activeIndex = slides.length - 1;
+            
+            slides[activeIndex].classList.add('active');
+            dots[activeIndex].classList.add('active');
+        }}
+
+        function currentSlide(index) {{
+            const slides = document.querySelectorAll('.carousel-slide');
+            const dots = document.querySelectorAll('.dot');
+            
+            slides.forEach(slide => slide.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            slides[index - 1].classList.add('active');
+            dots[index - 1].classList.add('active');
         }}
 
         // Initialize on page load
@@ -683,8 +1084,78 @@ class DynamicTemplateGenerator:
     # - _generate_responsive_styles()
     # - Other template generation methods
     
+    def _generate_layout_system(self) -> str:
+        """Generate layout system based on configuration"""
+        if self.config.layout == LayoutStructure.GRID_12:
+            return """        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: var(--grid-gap, 1.5rem);
+        }
+        
+        .col-1 { grid-column: span 1; }
+        .col-2 { grid-column: span 2; }
+        .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-8 { grid-column: span 8; }
+        .col-9 { grid-column: span 9; }
+        .col-12 { grid-column: span 12; }"""
+        elif self.config.layout == LayoutStructure.GRID_16:
+            return """        .grid {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: var(--grid-gap, 1rem);
+        }
+        
+        .col-1 { grid-column: span 1; }
+        .col-2 { grid-column: span 2; }
+        .col-4 { grid-column: span 4; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+        .col-16 { grid-column: span 16; }"""
+        elif self.config.layout == LayoutStructure.CSS_GRID:
+            return """        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--grid-gap, 2rem);
+        }
+        
+        .grid-auto {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .grid-dense {
+            grid-auto-flow: dense;
+        }"""
+        elif self.config.layout == LayoutStructure.FLEXBOX:
+            return """        .flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--flex-gap, 1.5rem);
+        }
+        
+        .flex-1 { flex: 1; }
+        .flex-2 { flex: 2; }
+        .flex-3 { flex: 3; }
+        .flex-none { flex: none; }
+        
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }"""
+        else:
+            return """        .layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }"""
+    
     def _generate_base_styles(self) -> str:
-        """Generate base CSS styles with anti-fingerprinting compatible classes"""
+        """Generate base CSS styles with layout system and anti-fingerprinting compatible classes"""
+        layout_styles = self._generate_layout_system()
+        
         return f"""        * {{
             margin: 0;
             padding: 0;
@@ -703,6 +1174,86 @@ class DynamicTemplateGenerator:
             margin-left: 280px;
             min-height: 100vh;
             transition: margin-left var(--transition-normal);
+        }}
+        
+        /* Layout System */
+{layout_styles}
+        
+        /* Container Widths */
+        .container {{
+            max-width: {random.choice(['1200px', '1400px', '1600px'])};
+            margin: 0 auto;
+            padding: 0 {random.choice(['1rem', '1.5rem', '2rem'])};
+        }}
+        
+        /* Section Patterns */
+        .section {{
+            padding: {random.choice(['4rem 0', '5rem 0', '6rem 0'])};
+            position: relative;
+        }}
+        
+        .section:nth-child(even) {{
+            background: rgba(255, 255, 255, {random.choice(['0.02', '0.03', '0.05'])});
+        }}
+        
+        /* Accessibility Styles */
+        .sr-only {{
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }}
+        
+        .skip-link {{
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: var(--accent-color);
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            z-index: 9999;
+            border-radius: 4px;
+            transition: top 0.3s;
+        }}
+        
+        .skip-link:focus {{
+            top: 6px;
+        }}
+        
+        /* Focus indicators */
+        a:focus,
+        button:focus,
+        input:focus,
+        select:focus,
+        textarea:focus {{
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }}
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {{
+            .card {{
+                border: 2px solid currentColor;
+            }}
+            
+            .btn {{
+                border: 2px solid currentColor;
+            }}
+        }}
+        
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {{
+            * {{
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }}
         }}"""
     
     def _generate_navigation_styles(self) -> str:
@@ -1539,16 +2090,14 @@ class DynamicTemplateGenerator:
     
     def _generate_games_grid(self, content_data: Dict[str, Any]) -> str:
         """Generate games grid section with anti-fingerprinting compatible classes"""
-        games_html = f"""        <section class="games-section">
-            <div class="games-grid">"""
+        all_games = content_data.get('all_games', [])
+        game_cards = ''.join(self._generate_game_card(game) for game in all_games)
         
-        for game in content_data.get('all_games', []):
-            games_html += self._generate_game_card(game)
-        
-        games_html += """            </div>
+        return f"""        <section class="games-section">
+            <div class="games-grid">
+{game_cards}
+            </div>
         </section>"""
-        
-        return games_html
     
     def _generate_breadcrumb(self, content_data: Dict[str, Any]) -> str:
         """Generate breadcrumb navigation with anti-fingerprinting compatible classes"""
@@ -1601,73 +2150,139 @@ class DynamicTemplateGenerator:
         </section>"""
     
     # Additional placeholder methods for other card styles and hero styles
-    def _generate_flip_card(self, item: Dict[str, Any]) -> str:
-        """Generate flip card style"""
-        return self._generate_hover_overlay_card(item)  # Simplified for now
-    
-    def _generate_slide_up_card(self, item: Dict[str, Any]) -> str:
-        """Generate slide up card style"""
-        return self._generate_hover_overlay_card(item)  # Simplified for now
-    
-    def _generate_glassmorphism_card(self, item: Dict[str, Any]) -> str:
-        """Generate glassmorphism card style"""
-        return self._generate_hover_overlay_card(item)  # Simplified for now
-    
-    def _generate_neumorphism_card(self, item: Dict[str, Any]) -> str:
-        """Generate neumorphism card style"""
-        return self._generate_hover_overlay_card(item)  # Simplified for now
-    
-    def _generate_gradient_border_card(self, item: Dict[str, Any]) -> str:
-        """Generate gradient border card style"""
-        return self._generate_hover_overlay_card(item)  # Simplified for now
-    
-    def _generate_zoom_hover_card(self, item: Dict[str, Any]) -> str:
-        """Generate zoom hover card style"""
-        return self._generate_hover_overlay_card(item)  # Simplified for now
-    
-    def _generate_split_hero(self, hero_data: Dict[str, Any]) -> str:
-        """Generate split hero style"""
-        return self._generate_fullscreen_hero(hero_data)  # Simplified for now
-    
-    def _generate_video_hero(self, hero_data: Dict[str, Any]) -> str:
-        """Generate video background hero"""
-        return self._generate_fullscreen_hero(hero_data)  # Simplified for now
-    
-    def _generate_gradient_hero(self, hero_data: Dict[str, Any]) -> str:
-        """Generate animated gradient hero"""
-        return self._generate_fullscreen_hero(hero_data)  # Simplified for now
-    
-    def _generate_particles_hero(self, hero_data: Dict[str, Any]) -> str:
-        """Generate particles.js hero"""
-        return self._generate_fullscreen_hero(hero_data)  # Simplified for now
-    
-    def _generate_carousel_hero(self, hero_data: Dict[str, Any]) -> str:
-        """Generate carousel hero"""
-        return self._generate_fullscreen_hero(hero_data)  # Simplified for now
-    
-    def _generate_minimalist_hero(self, hero_data: Dict[str, Any]) -> str:
-        """Generate minimalist hero"""
-        return self._generate_fullscreen_hero(hero_data)  # Simplified for now
     
     def _generate_top_navigation(self, site_name: str, nav_items: List[Tuple[str, str, str]]) -> str:
-        """Generate top navigation"""
-        return self._generate_sidebar_navigation(site_name, nav_items)  # Simplified for now
+        """Generate top navigation HTML"""
+        skip_link = """    <a href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>"""
+        
+        nav_html = f"""{skip_link}
+    <nav class="top-nav" role="navigation" aria-label="Main navigation">
+        <div class="nav-brand">
+            <h1>{site_name}</h1>
+        </div>
+        <div class="nav-menu" role="menubar">"""
+        
+        for i, (name, url, icon) in enumerate(nav_items):
+            active_class = " active" if name == "Home" else ""
+            is_current = 'aria-current="page"' if name == "Home" else ''
+            nav_html += f"""
+            <a href="{url}" 
+               class="nav-item{active_class}" 
+               role="menuitem" 
+               {is_current}>
+                <i class="{icon}" aria-hidden="true"></i> {name}
+            </a>"""
+        
+        nav_html += """
+        </div>
+    </nav>"""
+        return nav_html
     
     def _generate_hamburger_navigation(self, site_name: str, nav_items: List[Tuple[str, str, str]]) -> str:
-        """Generate hamburger navigation"""
-        return self._generate_sidebar_navigation(site_name, nav_items)  # Simplified for now
+        """Generate hamburger navigation HTML"""
+        skip_link = """    <a href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>"""
+        
+        nav_html = f"""{skip_link}
+    <nav class="hamburger-nav" role="navigation" aria-label="Main navigation">
+        <div class="nav-brand">
+            <h1>{site_name}</h1>
+        </div>
+        <button class="hamburger-toggle" 
+                onclick="toggleHamburgerMenu()" 
+                aria-label="Toggle navigation menu"
+                aria-expanded="false">
+            <i class="fas fa-bars" aria-hidden="true"></i>
+        </button>
+    </nav>
+    <div class="nav-menu" role="menubar">"""
+        
+        for i, (name, url, icon) in enumerate(nav_items):
+            active_class = " active" if name == "Home" else ""
+            is_current = 'aria-current="page"' if name == "Home" else ''
+            nav_html += f"""
+        <a href="{url}" 
+           class="nav-item{active_class}" 
+           role="menuitem" 
+           {is_current}>
+            <i class="{icon}" aria-hidden="true"></i> {name}
+        </a>"""
+        
+        nav_html += """
+    </div>"""
+        return nav_html
     
     def _generate_bottom_navigation(self, site_name: str, nav_items: List[Tuple[str, str, str]]) -> str:
-        """Generate bottom navigation"""
-        return self._generate_sidebar_navigation(site_name, nav_items)  # Simplified for now
+        """Generate bottom navigation HTML"""
+        skip_link = """    <a href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>"""
+        
+        nav_html = f"""{skip_link}
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">"""
+        
+        for i, (name, url, icon) in enumerate(nav_items):
+            active_class = " active" if name == "Home" else ""
+            is_current = 'aria-current="page"' if name == "Home" else ''
+            nav_html += f"""
+        <a href="{url}" 
+           class="nav-item{active_class}" 
+           role="menuitem" 
+           {is_current}>
+            <i class="{icon}" aria-hidden="true"></i>
+            <span>{name}</span>
+        </a>"""
+        
+        nav_html += """
+    </nav>"""
+        return nav_html
     
     def _generate_floating_navigation(self, site_name: str, nav_items: List[Tuple[str, str, str]]) -> str:
-        """Generate floating action navigation"""
-        return self._generate_sidebar_navigation(site_name, nav_items)  # Simplified for now
+        """Generate floating action navigation HTML"""
+        skip_link = """    <a href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>"""
+        
+        nav_html = f"""{skip_link}
+    <nav class="floating-nav" role="navigation" aria-label="Main navigation">
+        <button class="fab-main" 
+                onclick="toggleFabMenu()" 
+                aria-label="Toggle navigation menu"
+                aria-expanded="false">
+            <i class="fas fa-bars" aria-hidden="true"></i>
+        </button>
+        <div class="fab-menu" role="menubar">"""
+        
+        for i, (name, url, icon) in enumerate(nav_items):
+            nav_html += f"""
+            <a href="{url}" 
+               class="fab-item" 
+               role="menuitem" 
+               aria-label="{name}">
+                <i class="{icon}" aria-hidden="true"></i>
+            </a>"""
+        
+        nav_html += """
+        </div>
+    </nav>"""
+        return nav_html
     
     def _generate_tab_navigation(self, site_name: str, nav_items: List[Tuple[str, str, str]]) -> str:
-        """Generate tab bar navigation"""
-        return self._generate_sidebar_navigation(site_name, nav_items)  # Simplified for now
+        """Generate tab bar navigation HTML"""
+        skip_link = """    <a href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>"""
+        
+        nav_html = f"""{skip_link}
+    <nav class="tab-nav" role="navigation" aria-label="Main navigation">"""
+        
+        for i, (name, url, icon) in enumerate(nav_items):
+            active_class = " active" if name == "Home" else ""
+            is_current = 'aria-current="page"' if name == "Home" else ''
+            nav_html += f"""
+        <a href="{url}" 
+           class="tab-item{active_class}" 
+           role="menuitem" 
+           {is_current}>
+            {name}
+        </a>"""
+        
+        nav_html += """
+    </nav>"""
+        return nav_html
     
     def _get_framework_specific_styles(self) -> str:
         """Generate framework-specific override styles with anti-fingerprinting compatible classes"""

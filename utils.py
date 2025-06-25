@@ -2,6 +2,7 @@ import os
 import json
 import math
 import random
+import re
 import string
 from pathlib import Path
 from colorama import Fore, Style
@@ -77,7 +78,6 @@ def sanitize_filename(filename):
 
 def slugify(text):
     """Convert text to URL-friendly slug"""
-    import re
     text = re.sub(r'[^\w\s-]', '', text.lower())
     text = re.sub(r'[-\s]+', '-', text)
     return text.strip('-')
