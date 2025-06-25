@@ -810,8 +810,271 @@ class DynamicTemplateGenerator:
                 display: block;
             }}
         }}"""
+        elif self.config.navigation == NavigationPattern.TOP_NAV:
+            return f"""        .top-nav {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: var(--z-fixed);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }}
+        
+        .nav-brand {{
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--accent-color);
+        }}
+        
+        .nav-menu {{
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }}
+        
+        .nav-item {{
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+            transition: all var(--transition-normal);
+        }}
+        
+        .nav-item:hover,
+        .nav-item.active {{
+            color: white;
+            background: var(--accent-color);
+        }}
+        
+        .main-wrapper {{
+            margin-top: 80px;
+            margin-left: 0;
+        }}
+        
+        @media (max-width: 768px) {{
+            .nav-menu {{
+                display: none;
+            }}
+        }}"""
+        elif self.config.navigation == NavigationPattern.HAMBURGER:
+            return f"""        .hamburger-nav {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: var(--z-fixed);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }}
+        
+        .nav-brand {{
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--accent-color);
+        }}
+        
+        .hamburger-toggle {{
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }}
+        
+        .nav-menu {{
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 280px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 6rem 2rem 2rem;
+            transition: right var(--transition-normal);
+        }}
+        
+        .nav-menu.active {{
+            right: 0;
+        }}
+        
+        .nav-item {{
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: var(--border-radius-md);
+            transition: all var(--transition-normal);
+        }}
+        
+        .nav-item:hover,
+        .nav-item.active {{
+            color: white;
+            background: var(--accent-color);
+        }}
+        
+        .main-wrapper {{
+            margin-top: 80px;
+            margin-left: 0;
+        }}"""
+        elif self.config.navigation == NavigationPattern.BOTTOM_NAV:
+            return f"""        .bottom-nav {{
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: var(--z-fixed);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }}
+        
+        .nav-item {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            padding: 0.5rem;
+            border-radius: var(--border-radius-sm);
+            transition: all var(--transition-normal);
+            font-size: 0.75rem;
+        }}
+        
+        .nav-item i {{
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }}
+        
+        .nav-item:hover,
+        .nav-item.active {{
+            color: var(--accent-color);
+        }}
+        
+        .main-wrapper {{
+            margin-bottom: 80px;
+            margin-left: 0;
+        }}"""
+        elif self.config.navigation == NavigationPattern.FLOATING_ACTION:
+            return f"""        .floating-nav {{
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: var(--z-fixed);
+        }}
+        
+        .fab-main {{
+            width: 60px;
+            height: 60px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: all var(--transition-normal);
+        }}
+        
+        .fab-main:hover {{
+            transform: scale(1.1);
+        }}
+        
+        .fab-menu {{
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+        }}
+        
+        .fab-menu.active {{
+            opacity: 1;
+            visibility: visible;
+        }}
+        
+        .fab-item {{
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-normal);
+        }}
+        
+        .fab-item:hover {{
+            background: var(--accent-color);
+            transform: scale(1.1);
+        }}
+        
+        .main-wrapper {{
+            margin-left: 0;
+        }}"""
+        elif self.config.navigation == NavigationPattern.TAB_BAR:
+            return f"""        .tab-nav {{
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 0 0 2rem 2rem;
+            z-index: var(--z-fixed);
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 1rem;
+        }}
+        
+        .tab-item {{
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }}
+        
+        .tab-item:hover,
+        .tab-item.active {{
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+        }}
+        
+        .main-wrapper {{
+            margin-top: 100px;
+            margin-left: 0;
+        }}"""
         else:
-            return "        /* Alternative navigation styles would go here */"
+            return "        /* Default navigation styles */"
     
     def _generate_component_styles(self) -> str:
         """Generate component styles based on configuration"""
